@@ -75,8 +75,8 @@ data _⊨_⇒_ {n r} : PreType n r → Label → PreType n r → Set where
   seqε : ∀{A B C ℓ} → A ⊨ ε ⇒ skip → B ⊨ ℓ ⇒ C → (A ⨟ B) ⊨ ℓ ⇒ C
   seq⊗ : ∀{A B C} → A ⊨ ⊗L ⇒ C → (A ⨟ B) ⊨ ⊗L ⇒ C
   seq⅋ : ∀{A B C} → A ⊨ ⅋L ⇒ C → (A ⨟ B) ⊨ ⅋L ⇒ C
-  put  : ∀{μ A} → (μ ⊲ A) ⊨ put μ ⇒ A
-  get  : ∀{μ A} → (μ ⊳ A) ⊨ get μ ⇒ A
+  put  : ∀{μ} → put μ ⊨ put μ ⇒ skip
+  get  : ∀{μ} → get μ ⊨ get μ ⇒ skip
   rec  : ∀{A B ℓ} → unfold A ⊨ ℓ ⇒ B → rec A ⊨ ℓ ⇒ B
 
 only-skip : ∀{n ℓ} {A B C : Type n} → A ⊨ ε ⇒ B → A ⊨ ℓ ⇒ C → ℓ ≡ ε

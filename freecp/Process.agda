@@ -43,8 +43,8 @@ data Proc {n} (Σ : ProcContext) : ℕ → Context n → Set where
   select   : ∀{A B μ} → ∀[ Ch (A ⊕ B) ∗ ((A ∷_) ⊢ Proc Σ μ ∪ (B ∷_) ⊢ Proc Σ μ) ⇒ Proc Σ (suc μ) ]
   join     : ∀{A B μ} → ∀[ Ch (A ⅋ B) ∗ ((B ∷_) ⊢ (A ∷_) ⊢ Proc Σ μ) ⇒ Proc Σ μ ]
   fork     : ∀{A B μ ν} → ∀[ Ch (A ⊗ B) ∗ ((A ∷_) ⊢ Proc Σ μ) ∗ ((B ∷_) ⊢ Proc Σ ν) ⇒ Proc Σ (suc μ + ν) ]
-  put      : ∀{A μ ω} → ∀[ Ch (ω ⊲ A) ∗ ((A ∷_) ⊢ Proc Σ μ) ⇒ Proc Σ (suc μ + ω) ]
-  get      : ∀{A μ ν ω} → μ ≡ ν + ω → ∀[ Ch (ω ⊳ A) ∗ ((A ∷_) ⊢ Proc Σ μ) ⇒ Proc Σ ν ]
+  put      : ∀{A μ ω} → ∀[ Ch (put ω ⨟ A) ∗ ((A ∷_) ⊢ Proc Σ μ) ⇒ Proc Σ (suc μ + ω) ]
+  get      : ∀{A μ ν ω} → μ ≡ ν + ω → ∀[ Ch (get ω ⨟ A) ∗ ((A ∷_) ⊢ Proc Σ μ) ⇒ Proc Σ ν ]
   cut      : ∀{A B μ ν} → dual A ≈ B → ∀[ ((A ∷_) ⊢ Proc Σ μ) ∗ ((B ∷_) ⊢ Proc Σ ν) ⇒ Proc Σ (μ + ν) ]
 
 Def : ProcContext → Set

@@ -52,13 +52,15 @@ sim⊥⊗ : ∀{n A B} → ¬ Sim {n} ⊥ (A ⊗ B)
 sim⊥⊗ sim with sim .Sim.next ⊥
 ... | _ , () , _
 
-sim⊥put : ∀{n μ A} → ¬ Sim {n} ⊥ (μ ⊲ A)
+sim⊥put : ∀{n μ A} → ¬ Sim {n} ⊥ (put μ ⨟ A)
 sim⊥put sim with sim .Sim.next ⊥
-... | _ , () , _
+... | _ , seq () _ , _
+... | _ , seqε () _ , _
 
-sim𝟙put : ∀{n μ A} → ¬ Sim {n} 𝟙 (μ ⊲ A)
+sim𝟙put : ∀{n μ A} → ¬ Sim {n} 𝟙 (put μ ⨟ A)
 sim𝟙put sim with sim .Sim.next 𝟙
-... | _ , () , _
+... | _ , seq () _ , _
+... | _ , seqε () _ , _
 
 sim⊤𝟘 : ∀{n} → ¬ Sim {n} ⊤ 𝟘
 sim⊤𝟘 sim with sim .Sim.next ⊤
@@ -68,13 +70,15 @@ sim⊤𝟙 : ∀{n} → ¬ Sim {n} ⊤ 𝟙
 sim⊤𝟙 sim with sim .Sim.next ⊤
 ... | _ , () , _
 
-sim⊤put : ∀{n μ A} → ¬ Sim {n} ⊤ (μ ⊲ A)
+sim⊤put : ∀{n μ A} → ¬ Sim {n} ⊤ (put μ ⨟ A)
 sim⊤put sim with sim .Sim.next ⊤
-... | _ , () , _
+... | _ , seq () _ , _
+... | _ , seqε () _ , _
 
-sim⊤get : ∀{n μ A} → ¬ Sim {n} ⊤ (μ ⊳ A)
+sim⊤get : ∀{n μ A} → ¬ Sim {n} ⊤ (get μ ⨟ A)
 sim⊤get sim with sim .Sim.next ⊤
-... | _ , () , _
+... | _ , seq () _ , _
+... | _ , seqε () _ , _
 
 sim𝟘𝟙 : ∀{n} → ¬ Sim {n} 𝟘 𝟙
 sim𝟘𝟙 sim with sim .Sim.next 𝟘
@@ -104,25 +108,30 @@ sim&⊗ : ∀{n A B C D} → ¬ Sim {n} (A & B) (C ⊗ D)
 sim&⊗ sim with sim .Sim.next &L
 ... | _ , () , _
 
-sim&put : ∀{n A B μ C} → ¬ Sim {n} (A & B) (μ ⊲ C)
+sim&put : ∀{n A B μ C} → ¬ Sim {n} (A & B) (put μ ⨟ C)
 sim&put sim with sim .Sim.next &L
-... | _ , () , _
+... | _ , seq () _ , _
+... | _ , seqε () _ , _
 
-sim⊕put : ∀{n A B μ C} → ¬ Sim {n} (A ⊕ B) (μ ⊲ C)
+sim⊕put : ∀{n A B μ C} → ¬ Sim {n} (A ⊕ B) (put μ ⨟ C)
 sim⊕put sim with sim .Sim.next ⊕L
-... | _ , () , _
+... | _ , seq () _ , _
+... | _ , seqε () _ , _
 
-sim⅋put : ∀{n A B μ C} → ¬ Sim {n} (A ⅋ B) (μ ⊲ C)
+sim⅋put : ∀{n A B μ C} → ¬ Sim {n} (A ⅋ B) (put μ ⨟ C)
 sim⅋put sim with sim .Sim.next ⅋L
-... | _ , () , _
+... | _ , seq () _ , _
+... | _ , seqε () _ , _
 
-sim⊗put : ∀{n A B μ C} → ¬ Sim {n} (A ⊗ B) (μ ⊲ C)
+sim⊗put : ∀{n A B μ C} → ¬ Sim {n} (A ⊗ B) (put μ ⨟ C)
 sim⊗put sim with sim .Sim.next ⊗L
-... | _ , () , _
+... | _ , seq () _ , _
+... | _ , seqε () _ , _
 
-simgetput : ∀{n A B μ ν} → ¬ Sim {n} (μ ⊳ A) (ν ⊲ B)
-simgetput sim with sim .Sim.next get
-... | _ , () , _
+simgetput : ∀{n A B μ ν} → ¬ Sim {n} (get μ ⨟ A) (put ν ⨟ B)
+simgetput sim with sim .Sim.next (seq get λ ())
+... | _ , seq () _ , _
+... | _ , seqε () _ , _
 
 sim⊕⊗ : ∀{n A B C D} → ¬ Sim {n} (A ⊕ B) (C ⊗ D)
 sim⊕⊗ sim with sim .Sim.next ⊕L
@@ -167,9 +176,16 @@ _≲_ {n} A B = ∀{σ : ∀{u} → Fin n → PreType 0 u} → Sim (subst σ A) 
 ≲after⊗R le .Sim.next tr with le .Sim.next ⊗R
 ... | _ , ⊗R , le' = le' .Sim.next tr
 
-≲after-put : ∀{n μ} {A A' : Type n} → (μ ⊲ A) ≲ (μ ⊲ A') → A ≲ A'
-≲after-put le .Sim.next tr with le .Sim.next put
-... | _ , put , le' = le' .Sim.next tr
+≲after-skip : ∀{n} {A A' : Type n} → (skip ⨟ A) ≲ (skip ⨟ A') → A ≲ A'
+≲after-skip le .Sim.next tr with le .Sim.next (seqε skip tr)
+... | _ , seq skip ns , _ = contradiction ε ns
+... | _ , seqε skip tr' , le' = _ , tr' , le'
+
+≲after-put : ∀{n μ} {A A' : Type n} → (put μ ⨟ A) ≲ (put μ ⨟ A') → A ≲ A'
+≲after-put {n} {_} {A} {A'} le {σ} .Sim.next {ℓ} {B} tr with le {σ} .Sim.next (seq put λ ())
+... | B , seq put _ , le' with le' .Sim.next (seqε skip tr)
+... | B' , seq skip ns , le'' = contradiction ε ns
+... | B' , seqε skip tr' , le'' = _ , tr' , le''
 
 -- ≲after : ∀{n ℓ} {A B A' B' : Type n} →
 --          ((σ : ∀{m u} → Fin n → PreType m u) → A ⊨ ℓ ⇒ A') → B ⊨ ℓ ⇒ B' → A ≲ B → A' ≲ B'
@@ -222,14 +238,13 @@ open _≈_ public
 ≈after⊗R {_} {A} {A'} {B} {B'} eq .to   = ≲after⊗R {_} {A} {A'} {B} {B'} (eq .to)
 ≈after⊗R {_} {A} {A'} {B} {B'} eq .from = ≲after⊗R {_} {A'} {A} {B'} {B} (eq .from)
 
-≈after-put : ∀{n μ} {A A' : Type n}  → (μ ⊲ A) ≈ (μ ⊲ A') → A ≈ A'
+≈after-put : ∀{n μ} {A A' : Type n}  → (put μ ⨟ A) ≈ (put μ ⨟ A') → A ≈ A'
 ≈after-put {_} {μ} {A} {A'} eq .to = ≲after-put {_} {μ} {A} {A'} (eq .to)
 ≈after-put {_} {μ} {A} {A'} eq .from = ≲after-put {_} {μ} {A'} {A} (eq .from)
 
 not≈ : ∀{n} {A B : Type n} → ¬ Sim (subst (λ _ → skip) A) (subst (λ _ → skip) B) → ¬ A ≈ B
 not≈ nsim eq = contradiction (eq .to) nsim
 
-≈measure : ∀{n} {μ ν} {A B : Type n} → (μ ⊲ A) ≈ (ν ⊲ B) → μ ≡ ν
-≈measure eq with eq .to {σ = λ _ → skip} .Sim.next put
-... | _ , put , _ = refl
-
+≈measure : ∀{n} {μ ν} {A B : Type n} → (put μ ⨟ A) ≈ (put ν ⨟ B) → μ ≡ ν
+≈measure eq with eq .to {σ = λ _ → skip} .Sim.next (seq put λ ())
+... | _ , seq put _ , _ = refl

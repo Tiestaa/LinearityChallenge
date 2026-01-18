@@ -77,13 +77,13 @@ data _⊒_ {n Σ Γ} : ∀{μ ν} → Proc {n} Σ μ Γ → Proc Σ ν Γ → Se
     fork (ch ⟨ q′ ⟩ (P ⟨ r′ ⟩ cut eq (↭proc swap Q ⟨ < p′′ ⟩ R)))
   s-put :
     ∀{Γ₁ Γ₂ Δ A A' B μ ν ω} {P : Proc Σ μ (B ∷ A ∷ Δ)} {Q : Proc Σ ν (A' ∷ Γ₂)}
-    (eq : dual A ≈ A') (p : Γ ≃ Γ₁ + Γ₂) (q : Γ₁ ≃ [ ω ⊲ B ] + Δ) →
+    (eq : dual A ≈ A') (p : Γ ≃ Γ₁ + Γ₂) (q : Γ₁ ≃ [ put ω ⨟ B ] + Δ) →
     let _ , p′ , q′ = +-assoc-l p q in
     cut eq (put (ch ⟨ > q ⟩ P) ⟨ p ⟩ Q) ⊒
     put (ch ⟨ q′ ⟩ (cut eq (↭proc swap P ⟨ < p′ ⟩ Q)))
   s-get :
     ∀{Γ₁ Γ₂ Δ A A' B μ₁ μ₂ ν ω} {P : Proc Σ μ₁ (B ∷ A ∷ Δ)} {Q : Proc Σ μ₂ (A' ∷ Γ₂)}
-    (eq : dual A ≈ A') (eq' : μ₁ ≡ ν + ω) (p : Γ ≃ Γ₁ + Γ₂) (q : Γ₁ ≃ [ ω ⊳ B ] + Δ) →
+    (eq : dual A ≈ A') (eq' : μ₁ ≡ ν + ω) (p : Γ ≃ Γ₁ + Γ₂) (q : Γ₁ ≃ [ get ω ⨟ B ] + Δ) →
     let _ , p′ , q′ = +-assoc-l p q in
     cut {μ = ν} eq (get eq' (ch ⟨ > q ⟩ P) ⟨ p ⟩ Q) ⊒
     get (ugly-assoc μ₁ μ₂ ν ω eq') (ch ⟨ q′ ⟩ cut eq (↭proc swap P ⟨ < p′ ⟩ Q))

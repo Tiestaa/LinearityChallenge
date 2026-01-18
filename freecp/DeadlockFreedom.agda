@@ -42,8 +42,8 @@ data Delayed {n Σ} : ∀{μ Γ} → Proc {n} Σ μ Γ → Set where
              (p : Γ ≃ [ A ⊗ B ] + Δ) (q : Δ ≃ Δ₁ + Δ₂) → Delayed (fork (ch ⟨ > p ⟩ (P ⟨ < q ⟩ Q)))
   fork-r   : ∀{Γ Δ Δ₁ Δ₂ C A B μ ν} {P : Proc Σ μ (A ∷ Δ₁)} {Q : Proc Σ ν (B ∷ C ∷ Δ₂)}
              (p : Γ ≃ [ A ⊗ B ] + Δ) (q : Δ ≃ Δ₁ + Δ₂) → Delayed (fork (ch ⟨ > p ⟩ (P ⟨ > q ⟩ Q)))
-  put      : ∀{Γ Δ C A μ ω} {P : Proc Σ μ (A ∷ C ∷ Δ)} (p : Γ ≃ [ ω ⊲ A ] + Δ) → Delayed (put (ch ⟨ > p ⟩ P))
-  get      : ∀{Γ Δ C A μ ν ω} {P : Proc Σ μ (A ∷ C ∷ Δ)} (eq : μ ≡ ν + ω) (p : Γ ≃ [ ω ⊳ A ] + Δ) → Delayed (get eq (ch ⟨ > p ⟩ P))
+  put      : ∀{Γ Δ C A μ ω} {P : Proc Σ μ (A ∷ C ∷ Δ)} (p : Γ ≃ [ put ω ⨟ A ] + Δ) → Delayed (put (ch ⟨ > p ⟩ P))
+  get      : ∀{Γ Δ C A μ ν ω} {P : Proc Σ μ (A ∷ C ∷ Δ)} (eq : μ ≡ ν + ω) (p : Γ ≃ [ get ω ⨟ A ] + Δ) → Delayed (get eq (ch ⟨ > p ⟩ P))
 
 data Thread {n Σ μ Γ} (P : Proc {n} Σ μ Γ) : Set where
   link    : Link P → Thread P
@@ -89,11 +89,11 @@ fork→thread (< p) q = output (fork p q)
 fork→thread (> p) (< q) = delayed (fork-l p q)
 fork→thread (> p) (> q) = delayed (fork-r p q)
 
-put→thread : ∀{n Σ A μ ω Γ Δ} {P : Proc Σ μ (A ∷ Δ)} (p : Γ ≃ [ ω ⊲ A ] + Δ) → Thread {n} {Σ} (put (ch ⟨ p ⟩ P))
+put→thread : ∀{n Σ A μ ω Γ Δ} {P : Proc Σ μ (A ∷ Δ)} (p : Γ ≃ [ put ω ⨟ A ] + Δ) → Thread {n} {Σ} (put (ch ⟨ p ⟩ P))
 put→thread (< p) = output (put p)
 put→thread (> p) = delayed (put p)
 
-get→thread : ∀{n Σ A μ ν ω Γ Δ} {P : Proc Σ μ (A ∷ Δ)} (eq : μ ≡ ν + ω) (p : Γ ≃ [ ω ⊳ A ] + Δ) → Thread {n} {Σ} (get eq (ch ⟨ p ⟩ P))
+get→thread : ∀{n Σ A μ ν ω Γ Δ} {P : Proc Σ μ (A ∷ Δ)} (eq : μ ≡ ν + ω) (p : Γ ≃ [ get ω ⨟ A ] + Δ) → Thread {n} {Σ} (get eq (ch ⟨ p ⟩ P))
 get→thread eq (< p) = input (get eq p)
 get→thread eq (> p) = delayed (get eq p)
 
