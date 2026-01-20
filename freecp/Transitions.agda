@@ -2,6 +2,7 @@
 open import Data.Fin using (Fin)
 open import Data.Nat using (ℕ)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_; contradiction; contraposition)
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; cong; cong₂)
 
@@ -56,6 +57,23 @@ dual-special : ∀{ℓ} → Special ℓ → Special (dual-label ℓ)
 dual-special ε = ε
 dual-special ⊗L = ⅋L
 dual-special ⅋L = ⊗L
+
+special-decidable : (ℓ : Label) → Special ℓ ⊎ ¬ Special ℓ
+special-decidable ε = inj₁ ε
+special-decidable ⊥ = inj₂ λ ()
+special-decidable 𝟙 = inj₂ (λ ())
+special-decidable ⊤ = inj₂ λ ()
+special-decidable 𝟘 = inj₂ λ ()
+special-decidable &L = inj₂ λ ()
+special-decidable &R = inj₂ λ ()
+special-decidable ⊕L = inj₂ λ ()
+special-decidable ⊕R = inj₂ λ ()
+special-decidable ⅋L = inj₁ ⅋L
+special-decidable ⅋R = inj₂ λ ()
+special-decidable ⊗L = inj₁ ⊗L
+special-decidable ⊗R = inj₂ (λ ())
+special-decidable (put x) = inj₂ λ ()
+special-decidable (get x) = inj₂ λ ()
 
 data _⊨_⇒_ {n r} : PreType n r → Label → PreType n r → Set where
   skip : skip ⊨ ε ⇒ skip
@@ -125,6 +143,12 @@ deterministic (seq⅋ x) (seq⅋ y) = deterministic x y
 deterministic put put = refl
 deterministic get get = refl
 deterministic (rec x) (rec y) = deterministic x y
+
+afterεskip : ∀{n} {A B : Type n} → A ⊨ ε ⇒ B → B ≡ skip
+afterεskip skip = refl
+afterεskip (seq tr x) = contradiction ε x
+afterεskip (seqε sk tr) = afterεskip tr
+afterεskip (rec tr) = afterεskip tr
 
 transition-dual : ∀{n ℓ} {A B : Type n} → A ⊨ ℓ ⇒ B → dual A ⊨ dual-label ℓ ⇒ dual B
 transition-dual skip = skip

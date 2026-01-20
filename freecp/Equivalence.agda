@@ -1,9 +1,11 @@
 {-# OPTIONS --rewriting --guardedness #-}
-open import Data.Nat using (ℕ)
+open import Data.Nat using (ℕ; suc; zero)
 open import Data.Fin using (Fin)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.List.Base using (List; []; _∷_; [_])
 open import Relation.Nullary using (¬_; contradiction)
+open import Relation.Unary using (Decidable)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
 
 open import Type
@@ -18,6 +20,33 @@ record Sim {n} (A B : Type n) : Set where
 
 sim-refl : ∀{n} {A : Type n} → Sim A A
 sim-refl .Sim.next tr = _ , tr , sim-refl
+
+sim-rec-unfold : ∀{n} {A : PreType n (suc zero)} → Sim (rec A) (unfold A)
+sim-rec-unfold .Sim.next (rec tr) = _ , tr , sim-refl
+
+sim-unfold-rec : ∀{n} {A : PreType n (suc zero)} → Sim (unfold A) (rec A)
+sim-unfold-rec .Sim.next tr = _ , rec tr , sim-refl
+
+sim-A-skip⨟A : ∀{n} {A : Type n} → Sim A (skip ⨟ A)
+sim-A-skip⨟A .Sim.next tr = _ , seqε skip tr , sim-refl
+
+sim-skip⨟A-A : ∀{n} {A : Type n} → Sim (skip ⨟ A) A
+sim-skip⨟A-A .Sim.next (seq skip ns) = contradiction ε ns
+sim-skip⨟A-A .Sim.next (seqε skip tr) = _ , tr , sim-refl
+
+sim-A-A⨟skip : ∀{n} {A : Type n} → Sim A (A ⨟ skip)
+sim-A-A⨟skip .Sim.next {ℓ} tr with special-decidable ℓ
+... | inj₂ ns = _ , seq tr ns , sim-A-A⨟skip
+... | inj₁ ⊗L = _ , seq⊗ tr , sim-refl
+... | inj₁ ⅋L = _ , seq⅋ tr , sim-refl
+... | inj₁ ε with afterεskip tr
+... | refl = _ , seqε tr skip , sim-refl
+
+A⨟skip-sim-A : ∀{n} {A : Type n} → Sim (A ⨟ skip) A
+A⨟skip-sim-A .Sim.next {ℓ} (seq tr ns) = _ , tr , A⨟skip-sim-A
+A⨟skip-sim-A .Sim.next {ℓ} (seqε sk skip) = skip , sk , sim-refl
+A⨟skip-sim-A .Sim.next {ℓ} (seq⊗ tr) = _ , tr , sim-refl
+A⨟skip-sim-A .Sim.next {ℓ} (seq⅋ tr) = _ , tr , sim-refl
 
 sim-trans : ∀{n} {A B C : Type n} → Sim A B → Sim B C → Sim A C
 sim-trans p q .Sim.next tr with p .Sim.next tr
@@ -156,6 +185,9 @@ _≲_ {n} A B = ∀{σ : ∀{u} → Fin n → PreType 0 u} → Sim (subst σ A) 
 ≲dual {n} {A} {B} le {σ}
   rewrite sym (dual-subst σ A) | sym (dual-subst σ B) = sim-dual le
 
+≲skip-left : ∀{n} {A : Type n} → A ≲ (skip ⨟ A)
+≲skip-left .Sim.next tr = _ , seqε skip tr , sim-refl
+
 ≲subst : ∀{m n} {A B : Type m} (σ : ∀{u} → Fin m → PreType n u) →
          A ≲ B → subst σ A ≲ subst σ B
 ≲subst {A = A} {B} σ le {τ} rewrite subst-compose σ τ A | subst-compose σ τ B = le
@@ -241,6 +273,14 @@ open _≈_ public
 ≈after-put : ∀{n μ} {A A' : Type n}  → (put μ ⨟ A) ≈ (put μ ⨟ A') → A ≈ A'
 ≈after-put {_} {μ} {A} {A'} eq .to = ≲after-put {_} {μ} {A} {A'} (eq .to)
 ≈after-put {_} {μ} {A} {A'} eq .from = ≲after-put {_} {μ} {A'} {A} (eq .from)
+
+A≈skip⨟A : ∀{n} {A : Type n} → A ≈ (skip ⨟ A)
+A≈skip⨟A .to = sim-A-skip⨟A
+A≈skip⨟A .from = sim-skip⨟A-A
+
+A≈A⨟skip : ∀{n} {A : Type n} → A ≈ (A ⨟ skip)
+A≈A⨟skip .to = sim-A-A⨟skip
+A≈A⨟skip .from = A⨟skip-sim-A
 
 not≈ : ∀{n} {A B : Type n} → ¬ Sim (subst (λ _ → skip) A) (subst (λ _ → skip) B) → ¬ A ≈ B
 not≈ nsim eq = contradiction (eq .to) nsim
