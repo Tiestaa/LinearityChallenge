@@ -6,7 +6,7 @@ open import Data.Nat using (ℕ)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_; contradiction; contraposition)
-open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; cong; cong₂)
+open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl; cong; cong₂)
 
 open import Type
 
@@ -77,6 +77,9 @@ special-decidable ⊗R = inj₂ (λ ())
 special-decidable (put x) = inj₂ λ ()
 special-decidable (get x) = inj₂ λ ()
 
+not-special-not-ε : {ℓ : Label} → ¬ Special ℓ → ℓ ≢ ε
+not-special-not-ε ns refl = ns ε
+
 data _⊨_⇒_ {n r} : PreType n r → Label → PreType n r → Set where
   skip : skip ⊨ ε ⇒ skip
   ⊥    : ⊥ ⊨ ⊥ ⇒ ⊥
@@ -146,7 +149,7 @@ deterministic put put = refl
 deterministic get get = refl
 deterministic (rec x) (rec y) = deterministic x y
 
-afterεskip : ∀{n} {A B : Type n} → A ⊨ ε ⇒ B → B ≡ skip
+afterεskip : ∀{n r} {A B : PreType n r} → A ⊨ ε ⇒ B → B ≡ skip
 afterεskip skip = refl
 afterεskip (seq tr x) = contradiction ε x
 afterεskip (seqε sk tr) = afterεskip tr

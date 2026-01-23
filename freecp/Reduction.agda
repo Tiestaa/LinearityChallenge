@@ -10,6 +10,7 @@ open import Relation.Unary hiding (_∈_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Type
+open import Type.Transitions
 open import Type.Substitutions
 open import Type.Equivalence
 open import Context
@@ -31,23 +32,23 @@ data _⊢_↝_ {n Σ Γ} (ℙ : Def Σ) : ∀{Δ μ ν} → Proc {n} Σ μ Γ �
                 (eq : (dual A ⊕ dual B) ≈ (A' ⊕ B'))
                 (p : Γ ≃ Γ₁ + Γ₂) (p₀ : Γ₁ ≃ [] + Γ₁) (q₀ : Γ₂ ≃ [] + Γ₂) →
                 ℙ ⊢ cut eq (case (ch ⟨ < p₀ ⟩ (P , Q)) ⟨ p ⟩ select (ch ⟨ < q₀ ⟩ inj₁ R)) ↝
-                    cut (≈after⊕L eq) (P ⟨ p ⟩ R)
+                    cut (≈after ⊕L ⊕L eq) (P ⟨ p ⟩ R)
   r-select-r  : ∀{Γ₁ Γ₂ A B A' B' μ ν} {P : Proc Σ μ (A ∷ Γ₁)} {Q : Proc Σ μ (B ∷ Γ₁)} {R : Proc Σ ν (B' ∷ Γ₂)}
                 (eq : (dual A ⊕ dual B) ≈ (A' ⊕ B'))
                 (p : Γ ≃ Γ₁ + Γ₂) (p₀ : Γ₁ ≃ [] + Γ₁) (q₀ : Γ₂ ≃ [] + Γ₂) →
                 ℙ ⊢ cut eq (case (ch ⟨ < p₀ ⟩ (P , Q)) ⟨ p ⟩ select (ch ⟨ < q₀ ⟩ inj₂ R)) ↝
-                    cut (≈after⊕R eq) (Q ⟨ p ⟩ R)
+                    cut (≈after ⊕R ⊕R eq) (Q ⟨ p ⟩ R)
   r-fork      : ∀{Γ₁ Γ₂ Γ₃ Δ A B A' B' μ ν ω} {P : Proc Σ μ (A ∷ B ∷ Γ₁)} {Q : Proc Σ ν (A' ∷ Γ₂)} {R : Proc Σ ω (B' ∷ Γ₃)}
                 (eq : (dual A ⊗ dual B) ≈ (A' ⊗ B'))
                 (p : Γ ≃ Γ₁ + Δ) (p₀ : Γ₁ ≃ [] + Γ₁) (q : Δ ≃ Γ₂ + Γ₃) (q₀ : Δ ≃ [] + Δ) →
                 let _ , p' , q' = +-assoc-r p q in
                 ℙ ⊢ cut eq (join (ch ⟨ < p₀ ⟩ P) ⟨ p ⟩ fork (ch ⟨ < q₀ ⟩ (Q ⟨ q ⟩ R))) ↝
-                    cut (≈after⊗R eq) (cut (≈after⊗L eq) (P ⟨ < p' ⟩ Q) ⟨ q' ⟩ R)
+                    cut (≈after ⊗R ⊗R eq) (cut (≈after ⊗L ⊗L eq) (P ⟨ < p' ⟩ Q) ⟨ q' ⟩ R)
   r-put        : ∀{Γ₁ Γ₂ A A' μ₁ μ₂ ν ω} {P : Proc Σ μ₁ (A ∷ Γ₁)} {Q : Proc Σ μ₂ (A' ∷ Γ₂)}
                 (eq : (put ω ⨟ dual A) ≈ (put ω ⨟ A')) (eq' : μ₁ ≡ ν + ω)
                 (p : Γ ≃ Γ₁ + Γ₂) (p₀ : Γ₁ ≃ [] + Γ₁) (q₀ : Γ₂ ≃ [] + Γ₂) →
                 ℙ ⊢ cut eq (get eq' (ch ⟨ < p₀ ⟩ P) ⟨ p ⟩ put (ch ⟨ (< q₀) ⟩ Q)) ↝
-                cut (≈after-put eq) (P ⟨ p ⟩ Q)
+                cut (≈trans A≈skip⨟A (≈trans (≈after (seq put λ ()) (seq put λ ()) eq) (≈sym A≈skip⨟A))) (P ⟨ p ⟩ Q)
   r-cut        : ∀{Γ₁ Γ₂ A B A' Γ₁' μ ν ω} {P : Proc Σ μ (A ∷ Γ₁)} {R : Proc Σ ν (B ∷ Γ₂)} {Q : Proc Σ ω (A' ∷ Γ₁')}
                  (eq : dual A ≈ B) (eqA : A ≈ A') (eqC : Γ₁ ≈c Γ₁') (p : Γ ≃ Γ₁ + Γ₂) →
                  ℙ ⊢ P ↝ Q →

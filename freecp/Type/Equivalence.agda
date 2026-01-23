@@ -141,6 +141,18 @@ sim-dist-⨟& : ∀{n} {A B C : Type n} → Sim ((A ⨟ C) & (B ⨟ C)) ((A & B)
 sim-dist-⨟& .Sim.next &L = _ , seq &L (λ ()) , sim-refl
 sim-dist-⨟& .Sim.next &R = _ , seq &R (λ ()) , sim-refl
 
+sim-cong⨟ : ∀{n} {A A' B B' : Type n} → Sim A A' → Sim B B' → Sim (A ⨟ B) (A' ⨟ B')
+sim-cong⨟ ale ble .Sim.next (seq tr ns) with ale .Sim.next tr
+... | _ , tr' , ale' = _ , seq tr' ns , sim-cong⨟ ale' ble
+sim-cong⨟ ale ble .Sim.next (seqε sk tr) with ale .Sim.next sk
+... | _ , sk' , _ with afterεskip sk'
+... | refl with ble .Sim.next tr
+... | _ , tr' , ble' = _ , seqε sk' tr' , ble'
+sim-cong⨟ ale ble .Sim.next (seq⊗ tr) with ale .Sim.next tr
+... | _ , tr' , ale' = _ , seq⊗ tr' , ale'
+sim-cong⨟ ale ble .Sim.next (seq⅋ tr) with ale .Sim.next tr
+... | _ , tr' , ale' = _ , seq⅋ tr' , ale'
+
 sim-cong⨟l : ∀{n} {A B C : Type n} → Sim A B → Sim (A ⨟ C) (B ⨟ C)
 sim-cong⨟l le .Sim.next (seq tr ns) with le .Sim.next tr
 ... | _ , tr' , le' = _ , seq tr' ns , sim-cong⨟l le'
@@ -294,34 +306,35 @@ _≲_ {n} A B = ∀{m} {σ : ∀{u} → Fin n → PreType m u} → ClosedSubstit
          A ≲ B → subst σ A ≲ subst σ B
 ≲subst {A = A} {B} {σ} σc le {_} {τ} τc rewrite subst-compose σ τ A | subst-compose σ τ B = le (subst-cs σc τc)
 
-≲after⊕L : ∀{n} {A A' B B' : Type n} → (A ⊕ B) ≲ (A' ⊕ B') → A ≲ A'
-≲after⊕L le cls .Sim.next tr with le cls .Sim.next ⊕L
-... | _ , ⊕L , le' = le' .Sim.next tr
+transition-subst : ∀{m n ℓ} {A B : Type m} →
+        {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
+        A ⊨ ℓ ⇒ B → subst σ A ⊨ ℓ ⇒ subst σ B
+transition-subst cσ skip = skip
+transition-subst cσ ⊥ = ⊥
+transition-subst cσ 𝟙 = 𝟙
+transition-subst cσ ⊤ = ⊤
+transition-subst cσ 𝟘 = 𝟘
+transition-subst cσ &L = &L
+transition-subst cσ &R = &R
+transition-subst cσ ⊕L = ⊕L
+transition-subst cσ ⊕R = ⊕R
+transition-subst cσ ⅋L = ⅋L
+transition-subst cσ ⅋R = ⅋R
+transition-subst cσ ⊗L = ⊗L
+transition-subst cσ ⊗R = ⊗R
+transition-subst cσ (seq tr ns) = seq (transition-subst cσ tr) ns
+transition-subst cσ (seqε sk tr) = seqε (transition-subst cσ sk) (transition-subst cσ tr)
+transition-subst cσ (seq⊗ tr) = seq⊗ (transition-subst cσ tr)
+transition-subst cσ (seq⅋ tr) = seq⅋ (transition-subst cσ tr)
+transition-subst cσ put = put
+transition-subst cσ get = get
+transition-subst cσ (rec {A = A} tr) with transition-subst cσ tr
+... | tr' rewrite sym (unfold-subst cσ A) = rec tr'
 
-≲after⊕R : ∀{n} {A A' B B' : Type n} → (A ⊕ B) ≲ (A' ⊕ B') → B ≲ B'
-≲after⊕R le cls .Sim.next tr with le cls .Sim.next ⊕R
-... | _ , ⊕R , le' = le' .Sim.next tr
+≲after : ∀{n ℓ} {A A' B B' : Type n} → A ⊨ ℓ ⇒ A' → B ⊨ ℓ ⇒ B' → A ≲ B → A' ≲ B'
+≲after x y le cσ = sim-after (le cσ) (transition-subst cσ x) (transition-subst cσ y)
 
-≲after⊗L : ∀{n} {A A' B B' : Type n} → (A ⊗ B) ≲ (A' ⊗ B') → A ≲ A'
-≲after⊗L le cls .Sim.next tr with le cls .Sim.next ⊗L
-... | _ , ⊗L , le' = le' .Sim.next tr
-
-≲after⊗R : ∀{n} {A A' B B' : Type n} → (A ⊗ B) ≲ (A' ⊗ B') → B ≲ B'
-≲after⊗R le cls .Sim.next tr with le cls .Sim.next ⊗R
-... | _ , ⊗R , le' = le' .Sim.next tr
-
-≲after-skip : ∀{n} {A A' : Type n} → (skip ⨟ A) ≲ (skip ⨟ A') → A ≲ A'
-≲after-skip le cls .Sim.next tr with le cls .Sim.next (seqε skip tr)
-... | _ , seq skip ns , _ = contradiction ε ns
-... | _ , seqε skip tr' , le' = _ , tr' , le'
-
-≲after-put : ∀{n μ} {A A' : Type n} → (put μ ⨟ A) ≲ (put μ ⨟ A') → A ≲ A'
-≲after-put {n} {_} {A} {A'} le cls .Sim.next {ℓ} {B} tr with le cls .Sim.next (seq put λ ())
-... | B , seq put _ , le' with le' .Sim.next (seqε skip tr)
-... | B' , seq skip ns , le'' = contradiction ε ns
-... | B' , seqε skip tr' , le'' = _ , tr' , le''
-
--- -- EQUIVALENCE
+-- EQUIVALENCE
 
 record _≈_ {n} (A B : Type n) : Set where
   field
@@ -356,25 +369,19 @@ open _≈_ public
 ≈rec {n} {A} .to = ≲rec-unfold {n} {A}
 ≈rec {n} {A} .from = ≲unfold-rec {n} {A}
 
-≈after⊕L : ∀{n} {A A' B B' : Type n} → (A ⊕ B) ≈ (A' ⊕ B') → A ≈ A'
-≈after⊕L {_} {A} {A'} {B} {B'} eq .to   = ≲after⊕L {_} {A} {A'} {B} {B'} (eq .to)
-≈after⊕L {_} {A} {A'} {B} {B'} eq .from = ≲after⊕L {_} {A'} {A} {B'} {B} (eq .from)
+≈after : ∀{n ℓ} {A A' B B' : Type n} → A ⊨ ℓ ⇒ A' → B ⊨ ℓ ⇒ B' → A ≈ B → A' ≈ B'
+≈after x y eq .to = ≲after x y (eq .to)
+≈after x y eq .from = ≲after y x (eq .from)
 
-≈after⊕R : ∀{n} {A A' B B' : Type n} → (A ⊕ B) ≈ (A' ⊕ B') → B ≈ B'
-≈after⊕R {_} {A} {A'} {B} {B'} eq .to   = ≲after⊕R {_} {A} {A'} {B} {B'} (eq .to)
-≈after⊕R {_} {A} {A'} {B} {B'} eq .from = ≲after⊕R {_} {A'} {A} {B'} {B} (eq .from)
+void-no-transitions : ∀{n ℓ} {A : Type n} → ¬ void ⊨ ℓ ⇒ A
+void-no-transitions (rec tr) = void-no-transitions tr
 
-≈after⊗L : ∀{n} {A A' B B' : Type n} → (A ⊗ B) ≈ (A' ⊗ B') → A ≈ A'
-≈after⊗L {_} {A} {A'} {B} {B'} eq .to   = ≲after⊗L {_} {A} {A'} {B} {B'} (eq .to)
-≈after⊗L {_} {A} {A'} {B} {B'} eq .from = ≲after⊗L {_} {A'} {A} {B'} {B} (eq .from)
-
-≈after⊗R : ∀{n} {A A' B B' : Type n} → (A ⊗ B) ≈ (A' ⊗ B') → B ≈ B'
-≈after⊗R {_} {A} {A'} {B} {B'} eq .to   = ≲after⊗R {_} {A} {A'} {B} {B'} (eq .to)
-≈after⊗R {_} {A} {A'} {B} {B'} eq .from = ≲after⊗R {_} {A'} {A} {B'} {B} (eq .from)
-
-≈after-put : ∀{n μ} {A A' : Type n}  → (put μ ⨟ A) ≈ (put μ ⨟ A') → A ≈ A'
-≈after-put {_} {μ} {A} {A'} eq .to = ≲after-put {_} {μ} {A} {A'} (eq .to)
-≈after-put {_} {μ} {A} {A'} eq .from = ≲after-put {_} {μ} {A'} {A} (eq .from)
+void⨟A≈void : ∀{n} {A : Type n} → (void ⨟ A) ≈ void
+void⨟A≈void .to cσ .Sim.next (seq tr ns) = contradiction tr void-no-transitions
+void⨟A≈void .to cσ .Sim.next (seqε sk tr) = contradiction sk void-no-transitions
+void⨟A≈void .to cσ .Sim.next (seq⊗ tr) = contradiction tr void-no-transitions
+void⨟A≈void .to cσ .Sim.next (seq⅋ tr) = contradiction tr void-no-transitions
+void⨟A≈void .from cσ .Sim.next tr = contradiction tr void-no-transitions
 
 A≈skip⨟A : ∀{n} {A : Type n} → A ≈ (skip ⨟ A)
 A≈skip⨟A .to cls = sim-A-skip⨟A
@@ -387,6 +394,10 @@ A≈A⨟skip .from cls = A⨟skip-sim-A
 ≈assoc : ∀{n} {A B C : Type n} → (A ⨟ (B ⨟ C)) ≈ ((A ⨟ B) ⨟ C)
 ≈assoc .to cls = sim-assoc-l
 ≈assoc .from cls = sim-assoc-r
+
+≈cong⨟ : ∀{n} {A A' B B' : Type n} → A ≈ A' → B ≈ B' → (A ⨟ B) ≈ (A' ⨟ B')
+≈cong⨟ aeq beq .to cσ = sim-cong⨟ (aeq .to cσ) (beq .to cσ)
+≈cong⨟ aeq beq .from cσ = sim-cong⨟ (aeq .from cσ) (beq .from cσ)
 
 ≈cong⨟l : ∀{n} {A B C : Type n} → A ≈ B → (A ⨟ C) ≈ (B ⨟ C)
 ≈cong⨟l eq .to cls = sim-cong⨟l (eq .to cls)
