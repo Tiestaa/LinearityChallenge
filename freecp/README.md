@@ -9,7 +9,7 @@ session types.
   context-free session types
 * [Transitions](Transitions.agda): labelled transition system
   for context-free session types
-* [Equivalence](Equivalence.agda): bisimulation and type
+* [Equivalence](Type/Equivalence.agda): bisimulation and type
   equivalence
 * [Process](Process.agda): intrinsically-typed representation
   of processes and typing rules
