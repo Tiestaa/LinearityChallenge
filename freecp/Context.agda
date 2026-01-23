@@ -8,7 +8,7 @@ open import Relation.Unary
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂)
 
 open import Type
-open import Equivalence
+open import Type.Equivalence
 
 Context : ℕ → Set
 Context n = List (Type n)

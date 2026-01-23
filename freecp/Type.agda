@@ -1,9 +1,12 @@
 {-# OPTIONS --rewriting --guardedness #-}
 open import Function using (_∘_)
-open import Data.Nat using (ℕ; zero; suc)
-open import Data.Fin using (Fin; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; _≤_; _<_)
+open import Data.Nat.Properties as Nat
+open import Data.Fin using (Fin; zero; suc; toℕ)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; sym)
+open import Relation.Nullary using (contradiction)
+open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; cong; cong₂; sym)
+open import Relation.Binary.HeterogeneousEquality as Heq using (_≅_; refl)
 open import Agda.Builtin.Equality.Rewrite
 
 open import Axioms
@@ -225,3 +228,33 @@ subst-compose σ₁ σ₂ (get μ) = refl
 subst-compose σ₁ σ₂ (put μ) = refl
 subst-compose σ₁ σ₂ (inv x) = refl
 subst-compose σ₁ σ₂ (rec A) = cong rec (subst-compose σ₁ σ₂ A)
+
+exts-inv : ∀{n r s} (ρ : Fin r → Fin s) → exts (inv ∘ ρ) ≡ inv ∘ ext ρ
+exts-inv {n} {r} ρ = extensionality aux
+  where
+    aux : (x : Fin (suc r)) → exts (inv ∘ ρ) x ≡ (inv {n} ∘ (ext ρ)) x
+    aux zero = refl
+    aux (suc x) = refl
+
+rename-as-subst : ∀{n r s} (ρ : Fin r → Fin s) (A : PreType n r) → rename ρ A ≡ rec-subst (inv ∘ ρ) A
+rename-as-subst ρ (var x) = refl
+rename-as-subst ρ (rav x) = refl
+rename-as-subst ρ skip = refl
+rename-as-subst ρ ⊤ = refl
+rename-as-subst ρ 𝟘 = refl
+rename-as-subst ρ ⊥ = refl
+rename-as-subst ρ 𝟙 = refl
+rename-as-subst ρ (A ⨟ B) = cong₂ _⨟_ (rename-as-subst ρ A) (rename-as-subst ρ B)
+rename-as-subst ρ (A & B) = cong₂ _&_ (rename-as-subst ρ A) (rename-as-subst ρ B)
+rename-as-subst ρ (A ⊕ B) = cong₂ _⊕_ (rename-as-subst ρ A) (rename-as-subst ρ B)
+rename-as-subst ρ (A ⅋ B) = cong₂ _⅋_ (rename-as-subst ρ A) (rename-as-subst ρ B)
+rename-as-subst ρ (A ⊗ B) = cong₂ _⊗_ (rename-as-subst ρ A) (rename-as-subst ρ B)
+rename-as-subst ρ (get x) = refl
+rename-as-subst ρ (put x) = refl
+rename-as-subst ρ (inv x) = refl
+rename-as-subst ρ (rec A) =
+  begin
+    rec (rename (ext ρ) A) ≡⟨ cong rec (rename-as-subst (ext ρ) A) ⟩
+    rec (rec-subst (inv ∘ ext ρ) A) ≡⟨ cong rec (cong (λ x → rec-subst x A) (sym (exts-inv ρ))) ⟩
+    rec (rec-subst (exts (inv ∘ ρ)) A) ∎
+  where open Eq.≡-Reasoning

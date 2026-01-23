@@ -10,7 +10,8 @@ open import Relation.Unary hiding (_∈_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
 
 open import Type
-open import Equivalence
+open import Type.Equivalence
+open import Type.Substitutions
 open import Context
 open import Permutations
 
@@ -33,7 +34,8 @@ data Ch {n} (A : Type n) : Context n → Set where
   ch : Ch A [ A ]
 
 data Proc {n} (Σ : ProcContext) : ℕ → Context n → Set where
-  call     : ∀{T} → T ∈ Σ → (σ : ∀{s} → Fin (T .ProcType.n) → PreType n s) →
+  call     : ∀{T} → T ∈ Σ →
+             {σ : ∀{s} → Fin (T .ProcType.n) → PreType n s} → ClosedSubstitution σ →
              ∀[ substc σ (T .context) ↭_ ⇒ Proc Σ (suc (T .measure)) ]
   link     : ∀{A B μ} → dual A ≈ B → ∀[ Ch A ∗ Ch B ⇒ Proc Σ (suc μ) ]
   fail     : ∀{μ} → ∀[ Ch ⊤ ∗ U ⇒ Proc Σ μ ]
@@ -77,20 +79,22 @@ Def Σ = ∀{T} → T ∈ Σ → Proc Σ (T .measure) (T .context)
 ↭proc π (cut eq (P ⟨ p ⟩ Q)) with ↭split π p
 ... | Δ₁ , Δ₂ , q , π₁ , π₂ = cut eq (↭proc (prep π₁) P ⟨ q ⟩ ↭proc (prep π₂) Q)
 
-substp : ∀{n m Σ μ} {Γ : Context n} (σ : ∀{s} → Fin n → PreType m s) → Proc Σ μ Γ → Proc Σ μ (substc σ Γ)
-substp σ (call {T} x σ' π) with ↭subst σ π
-... | π' rewrite substc-compose σ' σ (T .context) = call x (Type.subst σ ∘ σ') π'
-substp σ (link {A} eq (ch ⟨ p ⟩ ch)) with ≈subst σ eq
+substp : ∀{n m Σ μ} {Γ : Context n}
+         {σ : ∀{s} → Fin n → PreType m s} → ClosedSubstitution σ →
+         Proc Σ μ Γ → Proc Σ μ (substc σ Γ)
+substp {σ = σ} σc (call {T} x {σ = σ'} cσ' π) with ↭subst σ π
+... | π' rewrite substc-compose σ' σ (T .context) = call x (subst-cs cσ' σc) π'
+substp {σ = σ} σc (link {A} eq (ch ⟨ p ⟩ ch)) with ≈subst σc eq
 ... | eq' rewrite sym (dual-subst σ A) = link eq' (ch ⟨ +-subst σ p ⟩ ch)
-substp σ (fail (ch ⟨ p ⟩ tt)) = fail (ch ⟨ +-subst σ p ⟩ tt)
-substp σ (wait (ch ⟨ p ⟩ P)) = wait (ch ⟨ +-subst σ p ⟩ substp σ P)
-substp σ (close ch) = close ch
-substp σ (case (ch ⟨ p ⟩ (P , Q))) = case (ch ⟨ +-subst σ p ⟩ (substp σ P , substp σ Q))
-substp σ (select (ch ⟨ p ⟩ inj₁ P)) = select (ch ⟨ +-subst σ p ⟩ inj₁ (substp σ P))
-substp σ (select (ch ⟨ p ⟩ inj₂ Q)) = select (ch ⟨ +-subst σ p ⟩ inj₂ (substp σ Q))
-substp σ (join (ch ⟨ p ⟩ P)) = join (ch ⟨ +-subst σ p ⟩ substp σ P)
-substp σ (fork (ch ⟨ p ⟩ (P ⟨ q ⟩ Q))) = fork (ch ⟨ +-subst σ p ⟩ (substp σ P ⟨ +-subst σ q ⟩ substp σ Q))
-substp σ (put (ch ⟨ p ⟩ P)) = put (ch ⟨ +-subst σ p ⟩ substp σ P)
-substp σ (get eq (ch ⟨ p ⟩ P)) = get eq (ch ⟨ +-subst σ p ⟩ substp σ P)
-substp σ (cut {A} eq (P ⟨ p ⟩ Q)) with ≈subst σ eq
-... | eq' rewrite sym (dual-subst σ A) = cut eq' (substp σ P ⟨ +-subst σ p ⟩ substp σ Q)
+substp {σ = σ} σc (fail (ch ⟨ p ⟩ tt)) = fail (ch ⟨ +-subst σ p ⟩ tt)
+substp {σ = σ} σc (wait (ch ⟨ p ⟩ P)) = wait (ch ⟨ +-subst σ p ⟩ substp σc P)
+substp _ (close ch) = close ch
+substp {σ = σ} σc (case (ch ⟨ p ⟩ (P , Q))) = case (ch ⟨ +-subst σ p ⟩ (substp σc P , substp σc Q))
+substp {σ = σ} σc (select (ch ⟨ p ⟩ inj₁ P)) = select (ch ⟨ +-subst σ p ⟩ inj₁ (substp σc P))
+substp {σ = σ} σc (select (ch ⟨ p ⟩ inj₂ Q)) = select (ch ⟨ +-subst σ p ⟩ inj₂ (substp σc Q))
+substp {σ = σ} σc (join (ch ⟨ p ⟩ P)) = join (ch ⟨ +-subst σ p ⟩ substp σc P)
+substp {σ = σ} σc (fork (ch ⟨ p ⟩ (P ⟨ q ⟩ Q))) = fork (ch ⟨ +-subst σ p ⟩ (substp σc P ⟨ +-subst σ q ⟩ substp σc Q))
+substp {σ = σ} σc (put (ch ⟨ p ⟩ P)) = put (ch ⟨ +-subst σ p ⟩ substp σc P)
+substp {σ = σ} σc (get eq (ch ⟨ p ⟩ P)) = get eq (ch ⟨ +-subst σ p ⟩ substp σc P)
+substp {σ = σ} σc (cut {A} eq (P ⟨ p ⟩ Q)) with ≈subst σc eq
+... | eq' rewrite sym (dual-subst σ A) = cut eq' (substp σc P ⟨ +-subst σ p ⟩ substp σc Q)

@@ -8,7 +8,7 @@ open import Data.List.Base using ([]; _∷_; [_])
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; cong₂)
 
 open import Type
-open import Equivalence
+open import Type.Equivalence
 open import Context
 open import Permutations
 open import Process

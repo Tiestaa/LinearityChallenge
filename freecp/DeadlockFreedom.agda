@@ -8,7 +8,7 @@ open import Relation.Nullary using (¬_; contradiction)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Type
-open import Equivalence
+open import Type.Equivalence
 open import Context
 open import Process hiding (_∈_)
 open import Reduction
@@ -249,7 +249,7 @@ canonical-cut-alive ℙ (cc-delayed {μ = μ₁} {μ₂} eq p (get {μ = μ} {ν
   inj₁ (_ , _ , s-get eq eq' p q , get→thread (ugly-assoc μ μ₂ μ₁ ω eq') q')
 
 deadlock-freedom : ∀{n Σ μ Γ} (ℙ : Def Σ) (P : Proc {n} Σ μ Γ) → Alive ℙ P
-deadlock-freedom ℙ (call x σ π) = inj₂ (_ , _ , _ , r-call x σ π)
+deadlock-freedom ℙ (call x cσ π) = inj₂ (_ , _ , _ , r-call x cσ π)
 deadlock-freedom ℙ (link eq (ch ⟨ p ⟩ ch)) = inj₁ (_ , _ , s-refl , link (link eq p))
 deadlock-freedom ℙ (fail (ch ⟨ p ⟩ _)) = inj₁ (_ , _ , s-refl , fail→thread p)
 deadlock-freedom ℙ (wait (ch ⟨ p ⟩ _)) = inj₁ (_ , _ , s-refl , wait→thread p)
