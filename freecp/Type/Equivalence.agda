@@ -12,7 +12,7 @@ open import Relation.Unary using (Decidable)
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; sym; cong)
 
 open import Type
-open import Transitions
+open import Type.Transitions
 open import Type.Substitutions
 
 -- SIMULATION

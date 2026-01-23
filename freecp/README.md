@@ -7,9 +7,10 @@ session types.
 
 * [Type](Type.agda): representation of recursive, polymorphic,
   context-free session types
-* [Transitions](Transitions.agda): labelled transition system
+* [Type/Transitions](Type/Transitions.agda): labelled transition system
   for context-free session types
-* [Equivalence](Type/Equivalence.agda): bisimulation and type
+* [Type/Equality](Type/Equality.agda): type equality
+* [Type/Equivalence](Type/Equivalence.agda): bisimulation and type
   equivalence
 * [Process](Process.agda): intrinsically-typed representation
   of processes and typing rules
