@@ -12,6 +12,8 @@ session types.
 * [Type/Equality](Type/Equality.agda): type equality
 * [Type/Equivalence](Type/Equivalence.agda): bisimulation and type
   equivalence
+* [Type/HeadNormalForm](Type/HeadNormalForm.agda): existence of
+  equivalent head normal form for every type
 * [Process](Process.agda): intrinsically-typed representation
   of processes and typing rules
 * [Congruence](Congruence.agda): pre-congruence relation and
