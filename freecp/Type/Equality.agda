@@ -132,9 +132,6 @@ same-ext : ∀{r r' s s'} (ρ : Fin r → Fin s) (ρ' : Fin r' → Fin s') →
 same-ext ρ ρ' same {zero} {zero} refl = refl
 same-ext ρ ρ' same {suc x} {suc y} eq = cong suc (same (Nat.suc-injective eq))
 
-same-suc-suc : ∀{r s} → SameRenaming {r} {s} suc suc
-same-suc-suc eq = cong suc eq
-
 rename== : ∀{n r s r' s'} {A : PreType n r} {B : PreType n r'}
            (ρ : Fin r → Fin s) (ρ' : Fin r' → Fin s') → SameRenaming ρ ρ' →
            A == B → rename ρ A == rename ρ' B

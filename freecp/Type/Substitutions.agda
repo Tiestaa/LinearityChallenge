@@ -119,7 +119,7 @@ id-zero τ ()
 exts-id : ∀{n r s k} {τ : Fin r → PreType n s} → IdentitySubstitution k τ → IdentitySubstitution (suc k) (exts τ)
 exts-id iτ {zero} x<k = inv refl
 exts-id iτ {suc x} (_≤_.s≤s x<k) with iτ x<k
-... | p = ==trans (rename== suc suc same-suc-suc p) (inv refl)
+... | p = ==trans (rename== suc suc (cong suc) p) (inv refl)
 
 data Closed {n r} (k : ℕ) : PreType n r → Set where
   skip : Closed k skip
