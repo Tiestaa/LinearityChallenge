@@ -22,7 +22,7 @@ record Substitution (m n : ℕ) : Set where
     -- a substitution must be COHERENT, namely it must be
     -- independent of the index denoting the number of recursion
     -- variables
-    co : ∀{u v} (x : Fin m) → at {u} x == at {v} x
+    co : ∀{u v} (x : Fin m) → at {u} x ~ at {v} x
 
 open Substitution public
 
@@ -49,7 +49,7 @@ subst σ (inv x) = inv x
 subst σ (rec A) = rec (subst σ A)
 
 Coherent : ∀{m n} → (∀{u} → PreType m u → PreType n u) → Set
-Coherent {m} f = ∀{r s} {A : PreType m r} {B : PreType m s} -> A == B → f A == f B
+Coherent {m} f = ∀{r s} {A : PreType m r} {B : PreType m s} -> A ~ B → f A ~ f B
 
 dual-coherent : ∀{n} → Coherent {n} dual
 dual-coherent skip = skip
@@ -134,38 +134,38 @@ subst-compose σ₁ σ₂ (inv x) = refl
 subst-compose σ₁ σ₂ (rec A) = cong rec (subst-compose σ₁ σ₂ A)
 
 IdentitySubstitution : ∀{n r s} → ℕ → (Fin r → PreType n s) → Set
-IdentitySubstitution {_} {r} {s} k τ = ∀{x : Fin r} → toℕ x < k → τ x == inv x
+IdentitySubstitution {_} {r} {s} k τ = ∀{x : Fin r} → toℕ x < k → τ x ~ inv x
 
 id-zero : ∀{n r s} (τ : Fin r → PreType n s) → IdentitySubstitution 0 τ
 id-zero τ ()
 
 exts-id : ∀{n r s k} {τ : Fin r → PreType n s} → IdentitySubstitution k τ → IdentitySubstitution (suc k) (exts τ)
 exts-id iτ {zero} x<k = inv refl
-exts-id iτ {suc x} (_≤_.s≤s x<k) = rename== suc suc (cong suc) (iτ x<k)
+exts-id iτ {suc x} (_≤_.s≤s x<k) = ~rename suc suc (cong suc) (iτ x<k)
 
-rec-subst-== : ∀{n r s t}
+rec-subst-~ : ∀{n r s t}
         {τ : Fin r → PreType n s} → IdentitySubstitution t τ →
-        {A : PreType n r} {B : PreType n t} → A == B → rec-subst τ A == A
-rec-subst-== iτ skip = skip
-rec-subst-== iτ bot = bot
-rec-subst-== iτ one = one
-rec-subst-== iτ top = top
-rec-subst-== iτ zero = zero
-rec-subst-== iτ put = put
-rec-subst-== iτ get = get
-rec-subst-== iτ var = var
-rec-subst-== iτ rav = rav
-rec-subst-== iτ (seq eq eq₁) = seq (rec-subst-== iτ eq) (rec-subst-== iτ eq₁)
-rec-subst-== iτ (par eq eq₁) = par (rec-subst-== iτ eq) (rec-subst-== iτ eq₁)
-rec-subst-== iτ (ten eq eq₁) = ten (rec-subst-== iτ eq) (rec-subst-== iτ eq₁)
-rec-subst-== iτ (amp eq eq₁) = amp (rec-subst-== iτ eq) (rec-subst-== iτ eq₁)
-rec-subst-== iτ (plus eq eq₁) = plus (rec-subst-== iτ eq) (rec-subst-== iτ eq₁)
-rec-subst-== iτ (inv {x} {y} eq) = iτ (Eq.subst (_< _) (sym eq) (Fin.toℕ<n y))
-rec-subst-== iτ (rec eq) = rec (rec-subst-== (exts-id iτ) eq)
+        {A : PreType n r} {B : PreType n t} → A ~ B → rec-subst τ A ~ A
+rec-subst-~ iτ skip = skip
+rec-subst-~ iτ bot = bot
+rec-subst-~ iτ one = one
+rec-subst-~ iτ top = top
+rec-subst-~ iτ zero = zero
+rec-subst-~ iτ put = put
+rec-subst-~ iτ get = get
+rec-subst-~ iτ var = var
+rec-subst-~ iτ rav = rav
+rec-subst-~ iτ (seq eq eq₁) = seq (rec-subst-~ iτ eq) (rec-subst-~ iτ eq₁)
+rec-subst-~ iτ (par eq eq₁) = par (rec-subst-~ iτ eq) (rec-subst-~ iτ eq₁)
+rec-subst-~ iτ (ten eq eq₁) = ten (rec-subst-~ iτ eq) (rec-subst-~ iτ eq₁)
+rec-subst-~ iτ (amp eq eq₁) = amp (rec-subst-~ iτ eq) (rec-subst-~ iτ eq₁)
+rec-subst-~ iτ (plus eq eq₁) = plus (rec-subst-~ iτ eq) (rec-subst-~ iτ eq₁)
+rec-subst-~ iτ (inv {x} {y} eq) = iτ (Eq.subst (_< _) (sym eq) (Fin.toℕ<n y))
+rec-subst-~ iτ (rec eq) = rec (rec-subst-~ (exts-id iτ) eq)
 
 rec-subst-≡ : ∀{m n r s} (τ : Fin r → PreType n s) (σ : Substitution m n) →
                (x : Fin m) → rec-subst τ (σ .at {r} x) ≡ σ .at {s} x
-rec-subst-≡ {_} {_} {r} {s} τ σ x = ==≡ (==trans (rec-subst-== (id-zero τ) (σ .co x)) (σ .co x))
+rec-subst-≡ {_} {_} {r} {s} τ σ x = ~≡ (~trans (rec-subst-~ (id-zero τ) (σ .co x)) (σ .co x))
 
 rename-≡ : ∀{m n r s} (ρ : Renaming r s) (σ : Substitution m n) →
             (x : Fin m) → rename ρ (σ .at x) ≡ σ .at x
