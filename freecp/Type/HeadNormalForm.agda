@@ -34,75 +34,74 @@ data HeadNormalForm {n} : Type n → Set where
   amp  : ∀{A B} → HeadNormalForm (A & B)
   plus : ∀{A B} → HeadNormalForm (A ⊕ B)
 
-nfseq : ∀{n} {A : Type n} → HeadNormalForm A → {B : Type n} → A ≡ skip ⊎ ∃[ N ] HeadNormalForm N × (A ⨟ B) ≈ N
-nfseq null = inj₂ (void , null , void⨟A≈void)
-nfseq skip = inj₁ refl
-nfseq bot = inj₂ (_ , bot , ≈⊥)
-nfseq one = inj₂ (_ , one , ≈𝟙)
-nfseq top = inj₂ (_ , top , ≈⊤)
-nfseq zero = inj₂ (_ , zero , ≈𝟘)
-nfseq put = inj₂ (_ , put , ≈sym ≈assoc)
-nfseq get = inj₂ (_ , get , ≈sym ≈assoc)
-nfseq var = inj₂ (_ , var , ≈sym ≈assoc)
-nfseq rav = inj₂ (_ , rav , ≈sym ≈assoc)
-nfseq par = inj₂ (_ , par , ≈⅋⨟)
-nfseq ten = inj₂ (_ , ten , ≈⊗⨟)
-nfseq amp = inj₂ (_ , amp , ≈dist&)
-nfseq plus = inj₂ (_ , plus , ≈dist⊕)
+nf-seq : ∀{n} {A : Type n} → HeadNormalForm A → {B : Type n} → A ≡ skip ⊎ ∃[ N ] HeadNormalForm N × (A ⨟ B) ≈ N
+nf-seq null = inj₂ (void , null , void⨟A≈void)
+nf-seq skip = inj₁ refl
+nf-seq bot = inj₂ (_ , bot , ≈⊥)
+nf-seq one = inj₂ (_ , one , ≈𝟙)
+nf-seq top = inj₂ (_ , top , ≈⊤)
+nf-seq zero = inj₂ (_ , zero , ≈𝟘)
+nf-seq put = inj₂ (_ , put , ≈sym ≈assoc)
+nf-seq get = inj₂ (_ , get , ≈sym ≈assoc)
+nf-seq var = inj₂ (_ , var , ≈sym ≈assoc)
+nf-seq rav = inj₂ (_ , rav , ≈sym ≈assoc)
+nf-seq par = inj₂ (_ , par , ≈⅋⨟)
+nf-seq ten = inj₂ (_ , ten , ≈⊗⨟)
+nf-seq amp = inj₂ (_ , amp , ≈dist&)
+nf-seq plus = inj₂ (_ , plus , ≈dist⊕)
 
-skip-transition : ∀{m n ℓ B} {A : Type m} → A ≈ skip →
-                  (σ : Substitution m n) →
-                  subst σ A ⊨ ℓ ⇒ B → ℓ ≡ ε
-skip-transition eq cσ tr with eq .from cσ .Sim.next skip
+skip-transition : ∀{m n ℓ B} {A : Type m} (σ : Substitution m n) →
+                  A ≈ skip → subst σ A ⊨ ℓ ⇒ B → ℓ ≡ ε
+skip-transition σ eq tr with eq .from σ .Sim.next skip
 ... | _ , tr' , _ = only-skip tr' tr
 
 nf-transition : ∀{m n ℓ B} (A : Type m) (σ : Substitution m n) →
                 subst σ A ⊨ ℓ ⇒ B → ∃[ N ] HeadNormalForm N × A ≈ N
-nf-transition (var x) cσ tr = _ , var , A≈A⨟skip
-nf-transition (rav x) cσ tr = _ , rav , A≈A⨟skip
-nf-transition skip cσ tr = _ , skip , ≈refl
-nf-transition ⊤ cσ tr = _ , top , ≈refl
-nf-transition 𝟘 cσ tr = _ , zero , ≈refl
-nf-transition ⊥ cσ tr = _ , bot , ≈refl
-nf-transition 𝟙 cσ tr = _ , one , ≈refl
-nf-transition (A ⨟ B) cσ (seq tr ns) with nf-transition A cσ tr
-... | N , anf , aeq with nfseq anf {B}
+nf-transition (var x) σ tr = _ , var , A≈A⨟skip
+nf-transition (rav x) σ tr = _ , rav , A≈A⨟skip
+nf-transition skip σ tr = _ , skip , ≈refl
+nf-transition ⊤ σ tr = _ , top , ≈refl
+nf-transition 𝟘 σ tr = _ , zero , ≈refl
+nf-transition ⊥ σ tr = _ , bot , ≈refl
+nf-transition 𝟙 σ tr = _ , one , ≈refl
+nf-transition (A ⨟ B) σ (seq tr ns) with nf-transition A σ tr
+... | N , anf , aeq with nf-seq anf {B}
 ... | inj₂ (N' , nf , eq) = N' , nf , ≈trans (≈cong⨟ aeq ≈refl) eq
-... | inj₁ refl with skip-transition aeq cσ tr
+... | inj₁ refl with skip-transition σ aeq tr
 ... | refl = contradiction ε ns
-nf-transition (A ⨟ B) cσ (seqε sk tr) with nf-transition A cσ sk
-... | _ , anf , aeq with nfseq anf {B}
+nf-transition (A ⨟ B) σ (seqε sk tr) with nf-transition A σ sk
+... | _ , anf , aeq with nf-seq anf {B}
 ... | inj₂ (_ , nf , eq) = _ , nf , ≈trans (≈cong⨟ aeq ≈refl) eq
-... | inj₁ refl with nf-transition B cσ tr
+... | inj₁ refl with nf-transition B σ tr
 ... | _ , bnf , beq = _ , bnf , ≈trans (≈cong⨟ aeq beq) (≈sym A≈skip⨟A)
-nf-transition (A ⨟ B) cσ (seq⊗ tr) with nf-transition A cσ tr
-... | _ , anf , aeq with nfseq anf {B}
+nf-transition (A ⨟ B) σ (seq⊗ tr) with nf-transition A σ tr
+... | _ , anf , aeq with nf-seq anf {B}
 ... | inj₂ (_ , nf , eq) = _ , nf , ≈trans (≈cong⨟ aeq ≈refl) eq
-... | inj₁ refl with skip-transition aeq cσ tr
+... | inj₁ refl with skip-transition σ aeq tr
 ... | ()
-nf-transition (A ⨟ B) cσ (seq⅋ tr) with nf-transition A cσ tr
-... | _ , anf , aeq with nfseq anf {B}
+nf-transition (A ⨟ B) σ (seq⅋ tr) with nf-transition A σ tr
+... | _ , anf , aeq with nf-seq anf {B}
 ... | inj₂ (_ , nf , eq) = _ , nf , ≈trans (≈cong⨟ aeq ≈refl) eq
-... | inj₁ refl with skip-transition aeq cσ tr
+... | inj₁ refl with skip-transition σ aeq tr
 ... | ()
-nf-transition (A & B) cσ tr = _ , amp , ≈refl
-nf-transition (A ⊕ B) cσ tr = _ , plus , ≈refl
-nf-transition (A ⅋ B) cσ tr = _ , par , ≈refl
-nf-transition (A ⊗ B) cσ tr = _ , ten , ≈refl
-nf-transition (get x) cσ tr = _ , get , A≈A⨟skip
-nf-transition (put x) cσ tr = _ , put , A≈A⨟skip
-nf-transition (rec A) cσ (rec tr)
-  rewrite unfold-subst cσ A with nf-transition (unfold A) cσ tr
+nf-transition (A & B) σ tr = _ , amp , ≈refl
+nf-transition (A ⊕ B) σ tr = _ , plus , ≈refl
+nf-transition (A ⅋ B) σ tr = _ , par , ≈refl
+nf-transition (A ⊗ B) σ tr = _ , ten , ≈refl
+nf-transition (get x) σ tr = _ , get , A≈A⨟skip
+nf-transition (put x) σ tr = _ , put , A≈A⨟skip
+nf-transition (rec A) σ (rec tr)
+  rewrite unfold-subst σ A with nf-transition (unfold A) σ tr
 ... | N , nf , eq = N , nf , ≈trans ≈rec eq
 
 nf-visible : ∀{n} (A : Type n) → Visible A → ∃[ N ] HeadNormalForm N × A ≈ N
-nf-visible A (visible cσ tr) = nf-transition A cσ tr
+nf-visible A (visible σ tr) = nf-transition A σ tr
 
 nf-invisible : ∀{n} {A : Type n} → ¬ Visible A → A ≈ void
-nf-invisible {A = A} nv .to σ .Sim.next {ℓ} {A'} tr = contradiction (visible σ tr) nv
-nf-invisible nv .from cσ .Sim.next tr = contradiction tr void-no-transitions
+nf-invisible nv .to σ .Sim.next tr = contradiction (visible σ tr) nv
+nf-invisible nv .from σ .Sim.next tr = contradiction tr void-no-transitions
 
-normal-form : ∀{n} (A : Type n) → ∃[ N ] HeadNormalForm N × A ≈ N
-normal-form A with excluded-middle (Visible A)
+head-normal-form : ∀{n} (A : Type n) → ∃[ N ] HeadNormalForm N × A ≈ N
+head-normal-form A with excluded-middle (Visible A)
 ... | inj₁ vis = nf-visible A vis
 ... | inj₂ nv = _ , null , nf-invisible nv
