@@ -19,6 +19,9 @@ open import Type.Equality
 record Substitution (m n : ℕ) : Set where
   field
     at : ∀{u} → Fin m → PreType n u
+    -- a substitution must be COHERENT, namely it must be
+    -- independent of the index denoting the number of recursion
+    -- variables
     co : ∀{u v} (x : Fin m) → at {u} x == at {v} x
 
 open Substitution public
@@ -45,32 +48,52 @@ subst σ (put μ) = put μ
 subst σ (inv x) = inv x
 subst σ (rec A) = rec (subst σ A)
 
-==subst : ∀{m n r s} (σ : Substitution m n) {A : PreType m r} {B : PreType m s} →
-          A == B → subst σ A == subst σ B
-==subst σ skip = skip
-==subst σ bot = bot
-==subst σ one = one
-==subst σ top = top
-==subst σ zero = zero
-==subst σ put = put
-==subst σ get = get
-==subst σ var = σ .co _
-==subst σ rav = dual== (σ .co _)
-==subst σ (seq x y) = seq (==subst σ x) (==subst σ y)
-==subst σ (par x y) = par (==subst σ x) (==subst σ y)
-==subst σ (ten x y) = ten (==subst σ x) (==subst σ y)
-==subst σ (amp x y) = amp (==subst σ x) (==subst σ y)
-==subst σ (plus x y) = plus (==subst σ x) (==subst σ y)
-==subst σ (inv x) = inv x
-==subst σ (rec x) = rec (==subst σ x)
+Coherent : ∀{m n} → (∀{u} → PreType m u → PreType n u) → Set
+Coherent {m} f = ∀{r s} {A : PreType m r} {B : PreType m s} -> A == B → f A == f B
+
+dual-coherent : ∀{n} → Coherent {n} dual
+dual-coherent skip = skip
+dual-coherent bot = one
+dual-coherent one = bot
+dual-coherent top = zero
+dual-coherent zero = top
+dual-coherent put = get
+dual-coherent get = put
+dual-coherent var = rav
+dual-coherent rav = var
+dual-coherent (seq x y) = seq (dual-coherent x) (dual-coherent y)
+dual-coherent (par x y) = ten (dual-coherent x) (dual-coherent y)
+dual-coherent (ten x y) = par (dual-coherent x) (dual-coherent y)
+dual-coherent (amp x y) = plus (dual-coherent x) (dual-coherent y)
+dual-coherent (plus x y) = amp (dual-coherent x) (dual-coherent y)
+dual-coherent (inv x) = inv x
+dual-coherent (rec x) = rec (dual-coherent x)
+
+subst-coherent : ∀{m n} (σ : Substitution m n) → Coherent (subst σ)
+subst-coherent σ skip = skip
+subst-coherent σ bot = bot
+subst-coherent σ one = one
+subst-coherent σ top = top
+subst-coherent σ zero = zero
+subst-coherent σ put = put
+subst-coherent σ get = get
+subst-coherent σ var = σ .co _
+subst-coherent σ rav = dual-coherent (σ .co _)
+subst-coherent σ (seq x y) = seq (subst-coherent σ x) (subst-coherent σ y)
+subst-coherent σ (par x y) = par (subst-coherent σ x) (subst-coherent σ y)
+subst-coherent σ (ten x y) = ten (subst-coherent σ x) (subst-coherent σ y)
+subst-coherent σ (amp x y) = amp (subst-coherent σ x) (subst-coherent σ y)
+subst-coherent σ (plus x y) = plus (subst-coherent σ x) (subst-coherent σ y)
+subst-coherent σ (inv x) = inv x
+subst-coherent σ (rec x) = rec (subst-coherent σ x)
 
 _·_ : ∀{m n o} → Substitution n o → Substitution m n → Substitution m o
 (τ · σ) .at = subst τ ∘ σ .at
-(τ · σ) .co = ==subst τ ∘ σ .co
+(τ · σ) .co = subst-coherent τ ∘ σ .co
 
 Dual : ∀{m n} → Substitution m n → Substitution m n
 Dual σ .at = dual ∘ σ .at
-Dual σ .co x = dual== (σ .co x)
+Dual σ .co x = dual-coherent (σ .co x)
 
 dual-subst : ∀{n m r} (σ : Substitution n m) (A : PreType n r) →
              dual (subst σ A) ≡ subst σ (dual A)
@@ -138,7 +161,7 @@ data Closed {n r} (k : ℕ) : PreType n r → Set where
   inv  : ∀{x} → toℕ x < k → Closed k (inv x)
   rec  : ∀{A} → Closed (suc k) A → Closed k (rec A)
 
-Closed-dual : ∀{n r} {k : ℕ} {A : PreType n r} → Closed k A → Closed k (dual A)
+Closed-dual : ∀{n r k} {A : PreType n r} → Closed k A → Closed k (dual A)
 Closed-dual skip = skip
 Closed-dual bot = one
 Closed-dual one = bot
@@ -156,27 +179,25 @@ Closed-dual (plus x y) = amp (Closed-dual x) (Closed-dual y)
 Closed-dual (inv x) = inv x
 Closed-dual (rec x) = rec (Closed-dual x)
 
-rec-subst-Closed : ∀{n r s t}
-                   (k : ℕ)
-                   {τ : Fin r → PreType n s} → IdentitySubstitution k τ →
-                   {A : PreType n r} {B : PreType n t} → Closed k A → A == B →
-                   rec-subst τ A == B
-rec-subst-Closed k iτ ca skip = skip
-rec-subst-Closed k iτ ca bot = bot
-rec-subst-Closed k iτ ca one = one
-rec-subst-Closed k iτ ca top = top
-rec-subst-Closed k iτ ca zero = zero
-rec-subst-Closed k iτ ca put = put
-rec-subst-Closed k iτ ca get = get
-rec-subst-Closed k iτ ca var = var
-rec-subst-Closed k iτ ca rav = rav
-rec-subst-Closed k iτ (seq ca cb) (seq x y) = seq (rec-subst-Closed k iτ ca x) (rec-subst-Closed k iτ cb y)
-rec-subst-Closed k iτ (par ca cb) (par x y) = par (rec-subst-Closed k iτ ca x) (rec-subst-Closed k iτ cb y)
-rec-subst-Closed k iτ (ten ca cb) (ten x y) = ten (rec-subst-Closed k iτ ca x) (rec-subst-Closed k iτ cb y)
-rec-subst-Closed k iτ (amp ca cb) (amp x y) = amp (rec-subst-Closed k iτ ca x) (rec-subst-Closed k iτ cb y)
-rec-subst-Closed k iτ (plus ca cb) (plus x y) = plus (rec-subst-Closed k iτ ca x) (rec-subst-Closed k iτ cb y)
-rec-subst-Closed k iτ (inv x<k) (inv eq) = ==trans (iτ x<k) (inv eq)
-rec-subst-Closed k iτ (rec ca) (rec x) = rec (rec-subst-Closed (suc k) (exts-id iτ) ca x)
+rec-subst-id : ∀{n r s} (k : ℕ)
+               {τ : Fin r → PreType n s} → IdentitySubstitution k τ →
+               {A : PreType n r} → Closed k A → rec-subst τ A == A
+rec-subst-id k iτ skip = skip
+rec-subst-id k iτ bot = bot
+rec-subst-id k iτ one = one
+rec-subst-id k iτ top = top
+rec-subst-id k iτ zero = zero
+rec-subst-id k iτ put = put
+rec-subst-id k iτ get = get
+rec-subst-id k iτ var = var
+rec-subst-id k iτ rav = rav
+rec-subst-id k iτ (seq x y) = seq (rec-subst-id k iτ x) (rec-subst-id k iτ y)
+rec-subst-id k iτ (par x y) = par (rec-subst-id k iτ x) (rec-subst-id k iτ y)
+rec-subst-id k iτ (ten x y) = ten (rec-subst-id k iτ x) (rec-subst-id k iτ y)
+rec-subst-id k iτ (amp x y) = amp (rec-subst-id k iτ x) (rec-subst-id k iτ y)
+rec-subst-id k iτ (plus x y) = plus (rec-subst-id k iτ x) (rec-subst-id k iτ y)
+rec-subst-id k iτ (inv x) = iτ x
+rec-subst-id k iτ (rec x) = rec (rec-subst-id (suc k) (exts-id iτ) x)
 
 ==Closed : ∀{n r k} {A : PreType n r} {B : PreType n k} → A == B → Closed k A
 ==Closed skip = skip
@@ -197,16 +218,11 @@ rec-subst-Closed k iτ (rec ca) (rec x) = rec (rec-subst-Closed (suc k) (exts-id
 ... | y<k = inv (Eq.subst (_< k) (sym x≡y) y<k)
 ==Closed (rec eq) = rec (==Closed eq)
 
-rec-subst-cs : ∀{m n r s}
-               (τ : Fin r → PreType n s) →
-               (σ : Substitution m n) →
-               (x : Fin m) → rec-subst τ (σ .at x) ≡ σ .at x
-rec-subst-cs {_} {_} {r} {s} τ σ x with id-zero τ
-... | iτ with rec-subst-Closed {_} {_} {_} {s} 0 iτ (==Closed (σ .co x)) (σ .co x)
-... | p = ==≡ (==trans p (σ .co x))
+rec-subst-cs : ∀{m n r s} (τ : Fin r → PreType n s) (σ : Substitution m n) →
+               (x : Fin m) → rec-subst τ (σ .at {r} x) ≡ σ .at {s} x
+rec-subst-cs {_} {_} {r} {s} τ σ x = ==≡ (==trans (rec-subst-id 0 (id-zero τ) (==Closed (σ .co x))) (σ .co x))
 
-rename-cs : ∀{m n r s} (ρ : Fin r → Fin s) →
-            (σ : Substitution m n) →
+rename-cs : ∀{m n r s} (ρ : Renaming r s) (σ : Substitution m n) →
             (x : Fin m) → rename ρ (σ .at x) ≡ σ .at x
 rename-cs ρ σ x =
   begin
@@ -215,10 +231,8 @@ rename-cs ρ σ x =
     σ .at x ∎
   where open Eq.≡-Reasoning
 
-rename-subst : ∀{m n r s}
-               (ρ : Fin r → Fin s) (σ : Substitution m n) →
-               (A : PreType m r) →
-               rename ρ (subst σ A) ≡ subst σ (rename ρ A)
+rename-subst : ∀{m n r s} (ρ : Renaming r s) (σ : Substitution m n) →
+               (A : PreType m r) → rename ρ (subst σ A) ≡ subst σ (rename ρ A)
 rename-subst ρ σ (var x) = rename-cs ρ σ x
 rename-subst ρ σ (rav x) = rename-cs ρ (Dual σ) x
 rename-subst ρ σ skip = refl

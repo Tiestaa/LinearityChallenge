@@ -59,11 +59,14 @@ dual-inv {_} {_} {rec A} = cong rec dual-inv
 
 -- RECURSIVE TYPES
 
-ext : ∀{m n} → (Fin m → Fin n) → Fin (suc m) → Fin (suc n)
+Renaming : ℕ → ℕ → Set
+Renaming r s = Fin r → Fin s
+
+ext : ∀{m n} → Renaming m n → Renaming (suc m) (suc n)
 ext ρ zero = zero
 ext ρ (suc k) = suc (ρ k)
 
-rename : ∀{n r s} → (Fin r → Fin s) → PreType n r → PreType n s
+rename : ∀{n r s} → Renaming r s → PreType n r → PreType n s
 rename ρ (var x) = var x
 rename ρ (rav x) = rav x
 rename ρ skip = skip
@@ -81,7 +84,7 @@ rename ρ (put μ) = put μ
 rename ρ (inv x) = inv (ρ x)
 rename ρ (rec A) = rec (rename (ext ρ) A)
 
-dual-rename : ∀{n r s} (ρ : Fin r → Fin s) (A : PreType n r) → dual (rename ρ A) ≡ rename ρ (dual A)
+dual-rename : ∀{n r s} (ρ : Renaming r s) (A : PreType n r) → dual (rename ρ A) ≡ rename ρ (dual A)
 dual-rename ρ (var x) = refl
 dual-rename ρ (rav x) = refl
 dual-rename ρ skip = refl
@@ -166,14 +169,14 @@ dual-unfold A rewrite dual-rec-subst (s-just (rec A)) A | dual-s-just (rec A) = 
 
 {-# REWRITE dual-unfold #-}
 
-exts-inv : ∀{n r s} (ρ : Fin r → Fin s) → exts (inv ∘ ρ) ≡ inv ∘ ext ρ
+exts-inv : ∀{n r s} (ρ : Renaming r s) → exts (inv ∘ ρ) ≡ inv ∘ ext ρ
 exts-inv {n} {r} ρ = extensionality aux
   where
     aux : (x : Fin (suc r)) → exts (inv ∘ ρ) x ≡ (inv {n} ∘ (ext ρ)) x
     aux zero = refl
     aux (suc x) = refl
 
-rename-as-subst : ∀{n r s} (ρ : Fin r → Fin s) (A : PreType n r) → rename ρ A ≡ rec-subst (inv ∘ ρ) A
+rename-as-subst : ∀{n r s} (ρ : Renaming r s) (A : PreType n r) → rename ρ A ≡ rec-subst (inv ∘ ρ) A
 rename-as-subst ρ (var x) = refl
 rename-as-subst ρ (rav x) = refl
 rename-as-subst ρ skip = refl

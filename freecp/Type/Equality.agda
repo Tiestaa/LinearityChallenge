@@ -106,34 +106,16 @@ data _==_ {n r s} : PreType n r → PreType n s → Set where
 ==≡ (inv x) = cong inv (toℕ-injective x)
 ==≡ (rec x) = cong rec (==≡ x)
 
-dual== : ∀{n u v} {A : PreType n u} {B : PreType n v} → A == B → dual A == dual B
-dual== skip = skip
-dual== bot = one
-dual== one = bot
-dual== top = zero
-dual== zero = top
-dual== put = get
-dual== get = put
-dual== var = rav
-dual== rav = var
-dual== (seq x y) = seq (dual== x) (dual== y)
-dual== (par x y) = ten (dual== x) (dual== y)
-dual== (ten x y) = par (dual== x) (dual== y)
-dual== (amp x y) = plus (dual== x) (dual== y)
-dual== (plus x y) = amp (dual== x) (dual== y)
-dual== (inv x) = inv x
-dual== (rec x) = rec (dual== x)
-
-SameRenaming : ∀{r r' s s'} (ρ : Fin r → Fin s) (ρ' : Fin r' → Fin s') → Set
+SameRenaming : ∀{r r' s s'} (ρ : Renaming r s) (ρ' : Renaming r' s') → Set
 SameRenaming {r} {r'} ρ ρ' = {x : Fin r} {y : Fin r'} → toℕ x ≡ toℕ y → toℕ (ρ x) ≡ toℕ (ρ' y)
 
-same-ext : ∀{r r' s s'} (ρ : Fin r → Fin s) (ρ' : Fin r' → Fin s') →
+same-ext : ∀{r r' s s'} (ρ : Renaming r s) (ρ' : Renaming r' s') →
            SameRenaming ρ ρ' → SameRenaming (ext ρ) (ext ρ')
 same-ext ρ ρ' same {zero} {zero} refl = refl
 same-ext ρ ρ' same {suc x} {suc y} eq = cong suc (same (Nat.suc-injective eq))
 
 rename== : ∀{n r s r' s'} {A : PreType n r} {B : PreType n r'}
-           (ρ : Fin r → Fin s) (ρ' : Fin r' → Fin s') → SameRenaming ρ ρ' →
+           (ρ : Renaming r s) (ρ' : Renaming r' s') → SameRenaming ρ ρ' →
            A == B → rename ρ A == rename ρ' B
 rename== ρ ρ' same skip = skip
 rename== ρ ρ' same bot = bot

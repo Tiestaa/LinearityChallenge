@@ -3,7 +3,6 @@ module Type.HeadNormalForm where
 
 open import Function using (_∘_)
 open import Data.Nat using (ℕ; zero; suc; _≤_; _<_)
-open import Data.Fin using (Fin; zero; suc; toℕ)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_; contradiction)

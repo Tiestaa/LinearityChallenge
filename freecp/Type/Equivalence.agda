@@ -3,7 +3,6 @@ module Type.Equivalence where
 
 open import Function using (_∘_)
 open import Data.Nat using (ℕ; suc; zero)
-open import Data.Fin using (Fin)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.List.Base using (List; []; _∷_; [_])
