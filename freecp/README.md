@@ -5,6 +5,8 @@ session types.
 
 ## Modules
 
+* [Axioms](Axioms.agda): postulates (extensionality and exlcuded
+  middle)
 * [Type](Type.agda): representation of recursive, polymorphic,
   context-free session types
 * [Type/Transitions](Type/Transitions.agda): labelled transition system

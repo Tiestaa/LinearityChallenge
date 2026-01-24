@@ -93,7 +93,7 @@ _·_ : ∀{m n o} → Substitution n o → Substitution m n → Substitution m o
 
 Dual : ∀{m n} → Substitution m n → Substitution m n
 Dual σ .at = dual ∘ σ .at
-Dual σ .co x = dual-coherent (σ .co x)
+Dual σ .co = dual-coherent ∘ σ .co
 
 dual-subst : ∀{n m r} (σ : Substitution n m) (A : PreType n r) →
              dual (subst σ A) ≡ subst σ (dual A)

@@ -175,4 +175,4 @@ transition-dual (seq⊗ x) = seq⅋ (transition-dual x)
 transition-dual (seq⅋ x) = seq⊗ (transition-dual x)
 transition-dual put = get
 transition-dual get = put
-transition-dual {A = rec A} (rec x) = rec (transition-dual x)
+transition-dual (rec x) = rec (transition-dual x)

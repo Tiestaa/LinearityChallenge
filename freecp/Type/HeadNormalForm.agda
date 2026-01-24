@@ -1,12 +1,10 @@
 {-# OPTIONS --rewriting --guardedness #-}
 module Type.HeadNormalForm where
 
-open import Function using (_∘_)
-open import Data.Nat using (ℕ; zero; suc; _≤_; _<_)
-open import Data.Product using (_×_; _,_; ∃; ∃-syntax; Σ-syntax)
+open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_; contradiction)
-open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl; cong; cong₂; sym)
+open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl)
 open import Agda.Builtin.Equality.Rewrite
 
 open import Axioms
@@ -34,7 +32,7 @@ data HeadNormalForm {n} : Type n → Set where
   amp  : ∀{A B} → HeadNormalForm (A & B)
   plus : ∀{A B} → HeadNormalForm (A ⊕ B)
 
-nf-seq : ∀{n} {A : Type n} → HeadNormalForm A → {B : Type n} → A ≡ skip ⊎ ∃[ N ] HeadNormalForm N × (A ⨟ B) ≈ N
+nf-seq : ∀{n} {A B : Type n} → HeadNormalForm A → A ≡ skip ⊎ ∃[ N ] HeadNormalForm N × (A ⨟ B) ≈ N
 nf-seq null = inj₂ (void , null , void⨟A≈void)
 nf-seq skip = inj₁ refl
 nf-seq bot = inj₂ (_ , bot , ≈⊥)
@@ -65,22 +63,22 @@ nf-transition 𝟘 σ tr = _ , zero , ≈refl
 nf-transition ⊥ σ tr = _ , bot , ≈refl
 nf-transition 𝟙 σ tr = _ , one , ≈refl
 nf-transition (A ⨟ B) σ (seq tr ns) with nf-transition A σ tr
-... | N , anf , aeq with nf-seq anf {B}
+... | N , anf , aeq with nf-seq anf
 ... | inj₂ (N' , nf , eq) = N' , nf , ≈trans (≈cong⨟ aeq ≈refl) eq
 ... | inj₁ refl with skip-transition σ aeq tr
 ... | refl = contradiction ε ns
 nf-transition (A ⨟ B) σ (seqε sk tr) with nf-transition A σ sk
-... | _ , anf , aeq with nf-seq anf {B}
+... | _ , anf , aeq with nf-seq anf
 ... | inj₂ (_ , nf , eq) = _ , nf , ≈trans (≈cong⨟ aeq ≈refl) eq
 ... | inj₁ refl with nf-transition B σ tr
 ... | _ , bnf , beq = _ , bnf , ≈trans (≈cong⨟ aeq beq) (≈sym A≈skip⨟A)
 nf-transition (A ⨟ B) σ (seq⊗ tr) with nf-transition A σ tr
-... | _ , anf , aeq with nf-seq anf {B}
+... | _ , anf , aeq with nf-seq anf
 ... | inj₂ (_ , nf , eq) = _ , nf , ≈trans (≈cong⨟ aeq ≈refl) eq
 ... | inj₁ refl with skip-transition σ aeq tr
 ... | ()
 nf-transition (A ⨟ B) σ (seq⅋ tr) with nf-transition A σ tr
-... | _ , anf , aeq with nf-seq anf {B}
+... | _ , anf , aeq with nf-seq anf
 ... | inj₂ (_ , nf , eq) = _ , nf , ≈trans (≈cong⨟ aeq ≈refl) eq
 ... | inj₁ refl with skip-transition σ aeq tr
 ... | ()
