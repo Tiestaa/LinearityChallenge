@@ -143,80 +143,43 @@ exts-id : ∀{n r s k} {τ : Fin r → PreType n s} → IdentitySubstitution k �
 exts-id iτ {zero} x<k = inv refl
 exts-id iτ {suc x} (_≤_.s≤s x<k) = rename== suc suc (cong suc) (iτ x<k)
 
-data Closed {n r} (k : ℕ) : PreType n r → Set where
-  skip : Closed k skip
-  bot  : Closed k ⊥
-  one  : Closed k 𝟙
-  top  : Closed k ⊤
-  zero : Closed k 𝟘
-  put  : ∀{μ} → Closed k (put μ)
-  get  : ∀{μ} → Closed k (get μ)
-  var  : ∀{x} → Closed k (var x)
-  rav  : ∀{x} → Closed k (rav x)
-  seq  : ∀{A B} → Closed k A → Closed k B → Closed k (A ⨟ B)
-  par  : ∀{A B} → Closed k A → Closed k B → Closed k (A ⅋ B)
-  ten  : ∀{A B} → Closed k A → Closed k B → Closed k (A ⊗ B)
-  amp  : ∀{A B} → Closed k A → Closed k B → Closed k (A & B)
-  plus : ∀{A B} → Closed k A → Closed k B → Closed k (A ⊕ B)
-  inv  : ∀{x} → toℕ x < k → Closed k (inv x)
-  rec  : ∀{A} → Closed (suc k) A → Closed k (rec A)
+rec-subst-== : ∀{n r s t}
+        {τ : Fin r → PreType n s} → IdentitySubstitution t τ →
+        {A : PreType n r} {B : PreType n t} → A == B → rec-subst τ A == A
+rec-subst-== iτ skip = skip
+rec-subst-== iτ bot = bot
+rec-subst-== iτ one = one
+rec-subst-== iτ top = top
+rec-subst-== iτ zero = zero
+rec-subst-== iτ put = put
+rec-subst-== iτ get = get
+rec-subst-== iτ var = var
+rec-subst-== iτ rav = rav
+rec-subst-== iτ (seq eq eq₁) = seq (rec-subst-== iτ eq) (rec-subst-== iτ eq₁)
+rec-subst-== iτ (par eq eq₁) = par (rec-subst-== iτ eq) (rec-subst-== iτ eq₁)
+rec-subst-== iτ (ten eq eq₁) = ten (rec-subst-== iτ eq) (rec-subst-== iτ eq₁)
+rec-subst-== iτ (amp eq eq₁) = amp (rec-subst-== iτ eq) (rec-subst-== iτ eq₁)
+rec-subst-== iτ (plus eq eq₁) = plus (rec-subst-== iτ eq) (rec-subst-== iτ eq₁)
+rec-subst-== iτ (inv {x} {y} eq) = iτ (Eq.subst (_< _) (sym eq) (Fin.toℕ<n y))
+rec-subst-== iτ (rec eq) = rec (rec-subst-== (exts-id iτ) eq)
 
-rec-subst-id : ∀{n r s} (k : ℕ)
-               {τ : Fin r → PreType n s} → IdentitySubstitution k τ →
-               {A : PreType n r} → Closed k A → rec-subst τ A == A
-rec-subst-id k iτ skip = skip
-rec-subst-id k iτ bot = bot
-rec-subst-id k iτ one = one
-rec-subst-id k iτ top = top
-rec-subst-id k iτ zero = zero
-rec-subst-id k iτ put = put
-rec-subst-id k iτ get = get
-rec-subst-id k iτ var = var
-rec-subst-id k iτ rav = rav
-rec-subst-id k iτ (seq x y) = seq (rec-subst-id k iτ x) (rec-subst-id k iτ y)
-rec-subst-id k iτ (par x y) = par (rec-subst-id k iτ x) (rec-subst-id k iτ y)
-rec-subst-id k iτ (ten x y) = ten (rec-subst-id k iτ x) (rec-subst-id k iτ y)
-rec-subst-id k iτ (amp x y) = amp (rec-subst-id k iτ x) (rec-subst-id k iτ y)
-rec-subst-id k iτ (plus x y) = plus (rec-subst-id k iτ x) (rec-subst-id k iτ y)
-rec-subst-id k iτ (inv x) = iτ x
-rec-subst-id k iτ (rec x) = rec (rec-subst-id (suc k) (exts-id iτ) x)
-
-==Closed : ∀{n r k} {A : PreType n r} {B : PreType n k} → A == B → Closed k A
-==Closed skip = skip
-==Closed bot = bot
-==Closed one = one
-==Closed top = top
-==Closed zero = zero
-==Closed put = put
-==Closed get = get
-==Closed var = var
-==Closed rav = rav
-==Closed (seq x y) = seq (==Closed x) (==Closed y)
-==Closed (par x y) = par (==Closed x) (==Closed y)
-==Closed (ten x y) = ten (==Closed x) (==Closed y)
-==Closed (amp x y) = amp (==Closed x) (==Closed y)
-==Closed (plus x y) = plus (==Closed x) (==Closed y)
-==Closed {k = k} (inv {x} {y} x≡y) with Fin.toℕ<n y
-... | y<k = inv (Eq.subst (_< k) (sym x≡y) y<k)
-==Closed (rec eq) = rec (==Closed eq)
-
-rec-subst-cs : ∀{m n r s} (τ : Fin r → PreType n s) (σ : Substitution m n) →
+rec-subst-≡ : ∀{m n r s} (τ : Fin r → PreType n s) (σ : Substitution m n) →
                (x : Fin m) → rec-subst τ (σ .at {r} x) ≡ σ .at {s} x
-rec-subst-cs {_} {_} {r} {s} τ σ x = ==≡ (==trans (rec-subst-id 0 (id-zero τ) (==Closed (σ .co x))) (σ .co x))
+rec-subst-≡ {_} {_} {r} {s} τ σ x = ==≡ (==trans (rec-subst-== (id-zero τ) (σ .co x)) (σ .co x))
 
-rename-cs : ∀{m n r s} (ρ : Renaming r s) (σ : Substitution m n) →
+rename-≡ : ∀{m n r s} (ρ : Renaming r s) (σ : Substitution m n) →
             (x : Fin m) → rename ρ (σ .at x) ≡ σ .at x
-rename-cs ρ σ x =
+rename-≡ ρ σ x =
   begin
     rename ρ (σ .at x) ≡⟨ rename-as-subst ρ (σ .at x) ⟩
-    rec-subst (inv ∘ ρ) (σ .at x) ≡⟨ rec-subst-cs (inv ∘ ρ) σ x ⟩
+    rec-subst (inv ∘ ρ) (σ .at x) ≡⟨ rec-subst-≡ (inv ∘ ρ) σ x ⟩
     σ .at x ∎
   where open Eq.≡-Reasoning
 
 rename-subst : ∀{m n r s} (ρ : Renaming r s) (σ : Substitution m n) →
                (A : PreType m r) → rename ρ (subst σ A) ≡ subst σ (rename ρ A)
-rename-subst ρ σ (var x) = rename-cs ρ σ x
-rename-subst ρ σ (rav x) = rename-cs ρ (Dual σ) x
+rename-subst ρ σ (var x) = rename-≡ ρ σ x
+rename-subst ρ σ (rav x) = rename-≡ ρ (Dual σ) x
 rename-subst ρ σ skip = refl
 rename-subst ρ σ ⊤ = refl
 rename-subst ρ σ 𝟘 = refl
@@ -245,8 +208,8 @@ exts-subst τ closed = extensionality (aux τ closed)
 rec-subst-subst : ∀{m n r s} (τ : Fin r → PreType m s)
                   (σ : Substitution m n) →
                   (A : PreType m r) → rec-subst (subst σ ∘ τ) (subst σ A) ≡ subst σ (rec-subst τ A)
-rec-subst-subst τ σ (var x) = rec-subst-cs (subst σ ∘ τ) σ x
-rec-subst-subst τ σ (rav x) = rec-subst-cs (subst σ ∘ τ) (Dual σ) x
+rec-subst-subst τ σ (var x) = rec-subst-≡ (subst σ ∘ τ) σ x
+rec-subst-subst τ σ (rav x) = rec-subst-≡ (subst σ ∘ τ) (Dual σ) x
 rec-subst-subst τ σ skip = refl
 rec-subst-subst τ σ ⊤ = refl
 rec-subst-subst τ σ 𝟘 = refl
