@@ -134,7 +134,7 @@ subst-compose σ₁ σ₂ (inv x) = refl
 subst-compose σ₁ σ₂ (rec A) = cong rec (subst-compose σ₁ σ₂ A)
 
 IdentitySubstitution : ∀{n r s} → ℕ → (Fin r → PreType n s) → Set
-IdentitySubstitution {_} {r} {s} k τ = ∀{x : Fin r} → toℕ x < k → τ x ~ inv x
+IdentitySubstitution k τ = ∀{x} → toℕ x < k → τ x ~ inv x
 
 id-zero : ∀{n r s} (τ : Fin r → PreType n s) → IdentitySubstitution 0 τ
 id-zero τ ()
