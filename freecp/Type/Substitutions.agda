@@ -161,24 +161,6 @@ data Closed {n r} (k : ℕ) : PreType n r → Set where
   inv  : ∀{x} → toℕ x < k → Closed k (inv x)
   rec  : ∀{A} → Closed (suc k) A → Closed k (rec A)
 
-Closed-dual : ∀{n r k} {A : PreType n r} → Closed k A → Closed k (dual A)
-Closed-dual skip = skip
-Closed-dual bot = one
-Closed-dual one = bot
-Closed-dual top = zero
-Closed-dual zero = top
-Closed-dual put = get
-Closed-dual get = put
-Closed-dual var = rav
-Closed-dual rav = var
-Closed-dual (seq x y) = seq (Closed-dual x) (Closed-dual y)
-Closed-dual (par x y) = ten (Closed-dual x) (Closed-dual y)
-Closed-dual (ten x y) = par (Closed-dual x) (Closed-dual y)
-Closed-dual (amp x y) = plus (Closed-dual x) (Closed-dual y)
-Closed-dual (plus x y) = amp (Closed-dual x) (Closed-dual y)
-Closed-dual (inv x) = inv x
-Closed-dual (rec x) = rec (Closed-dual x)
-
 rec-subst-id : ∀{n r s} (k : ℕ)
                {τ : Fin r → PreType n s} → IdentitySubstitution k τ →
                {A : PreType n r} → Closed k A → rec-subst τ A == A
