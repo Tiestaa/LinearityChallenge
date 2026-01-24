@@ -168,4 +168,3 @@ module Reasoning where
 
   _==⟨_⟩_ : ∀{n r s t} (x : PreType n r) {y : PreType n s} {z : PreType n t} -> x == y -> y == z -> x == z
   _==⟨_⟩_ _ = ==trans
-

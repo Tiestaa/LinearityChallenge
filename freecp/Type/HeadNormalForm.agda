@@ -17,7 +17,7 @@ open import Type.Equivalence
 open import Type.Substitutions
 
 data Visible {n} (A : Type n) : Set where
-  visible : ∀{m ℓ B} {σ : Substitution n m} → ClosedSubstitution σ → subst σ A ⊨ ℓ ⇒ B → Visible A
+  visible : ∀{m ℓ B} (σ : Substitution n m) → subst σ A ⊨ ℓ ⇒ B → Visible A
 
 data HeadNormalForm {n} : Type n → Set where
   null : HeadNormalForm void
@@ -52,13 +52,12 @@ nfseq amp = inj₂ (_ , amp , ≈dist&)
 nfseq plus = inj₂ (_ , plus , ≈dist⊕)
 
 skip-transition : ∀{m n ℓ B} {A : Type m} → A ≈ skip →
-                  {σ : Substitution m n} → ClosedSubstitution σ →
+                  (σ : Substitution m n) →
                   subst σ A ⊨ ℓ ⇒ B → ℓ ≡ ε
 skip-transition eq cσ tr with eq .from cσ .Sim.next skip
 ... | _ , tr' , _ = only-skip tr' tr
 
-nf-transition : ∀{m n ℓ B} (A : Type m)
-                {σ : Substitution m n} → ClosedSubstitution σ →
+nf-transition : ∀{m n ℓ B} (A : Type m) (σ : Substitution m n) →
                 subst σ A ⊨ ℓ ⇒ B → ∃[ N ] HeadNormalForm N × A ≈ N
 nf-transition (var x) cσ tr = _ , var , A≈A⨟skip
 nf-transition (rav x) cσ tr = _ , rav , A≈A⨟skip
@@ -101,7 +100,7 @@ nf-visible : ∀{n} (A : Type n) → Visible A → ∃[ N ] HeadNormalForm N × 
 nf-visible A (visible cσ tr) = nf-transition A cσ tr
 
 nf-invisible : ∀{n} {A : Type n} → ¬ Visible A → A ≈ void
-nf-invisible {A = A} nv .to {σ = σ} cσ .Sim.next {ℓ} {A'} tr = contradiction (visible cσ tr) nv
+nf-invisible {A = A} nv .to σ .Sim.next {ℓ} {A'} tr = contradiction (visible σ tr) nv
 nf-invisible nv .from cσ .Sim.next tr = contradiction tr void-no-transitions
 
 normal-form : ∀{n} (A : Type n) → ∃[ N ] HeadNormalForm N × A ≈ N

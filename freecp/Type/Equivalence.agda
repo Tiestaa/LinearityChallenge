@@ -280,7 +280,7 @@ sim⅋⊗ sim with sim .Sim.next ⅋L
 -- HALF EQUIVALENCE
 
 _≲_ : ∀{n} → Type n → Type n → Set
-_≲_ {n} A B = ∀{m} {σ : Substitution n m} → ClosedSubstitution σ → Sim (subst σ A) (subst σ B)
+_≲_ {n} A B = ∀{m} (σ : Substitution n m) → Sim (subst σ A) (subst σ B)
 
 ≲refl : ∀{n} {A : Type n} → A ≲ A
 ≲refl cls = sim-refl
@@ -289,8 +289,8 @@ _≲_ {n} A B = ∀{m} {σ : Substitution n m} → ClosedSubstitution σ → Sim
 ≲trans p q cls = sim-trans (p cls) (q cls)
 
 ≲dual : ∀{n} {A B : Type n} → A ≲ B → dual A ≲ dual B
-≲dual {n} {A} {B} le {_} {σ} cls
-  rewrite sym (dual-subst σ A) | sym (dual-subst σ B) = sim-dual (le cls)
+≲dual {n} {A} {B} le σ
+  rewrite sym (dual-subst σ A) | sym (dual-subst σ B) = sim-dual (le σ)
 
 ≲rec-unfold : ∀{n} {A : PreType n (suc zero)} → rec A ≲ unfold A
 ≲rec-unfold {_} {A} cσ rewrite sym (unfold-subst cσ A) = sim-rec-unfold
@@ -301,11 +301,11 @@ _≲_ {n} A B = ∀{m} {σ : Substitution n m} → ClosedSubstitution σ → Sim
 ≲skip-left : ∀{n} {A : Type n} → A ≲ (skip ⨟ A)
 ≲skip-left cls .Sim.next tr = _ , seqε skip tr , sim-refl
 
-≲subst : ∀{m n} {A B : Type m} {σ : Substitution m n} → ClosedSubstitution σ →
+≲subst : ∀{m n} {A B : Type m} (σ : Substitution m n) →
          A ≲ B → subst σ A ≲ subst σ B
-≲subst {A = A} {B} {σ} σc le {_} {τ} τc rewrite subst-compose σ τ A | subst-compose σ τ B = le (subst-cs σc τc)
+≲subst {A = A} {B} σ le τ rewrite subst-compose σ τ A | subst-compose σ τ B = le (τ · σ)
 
-transition-subst : ∀{m n ℓ} {A B : Type m} {σ : Substitution m n} → ClosedSubstitution σ →
+transition-subst : ∀{m n ℓ} {A B : Type m} (σ : Substitution m n) →
                    A ⊨ ℓ ⇒ B → subst σ A ⊨ ℓ ⇒ subst σ B
 transition-subst cσ skip = skip
 transition-subst cσ ⊥ = ⊥
@@ -330,7 +330,7 @@ transition-subst cσ (rec {A = A} tr) with transition-subst cσ tr
 ... | tr' rewrite sym (unfold-subst cσ A) = rec tr'
 
 ≲after : ∀{n ℓ} {A A' B B' : Type n} → A ⊨ ℓ ⇒ A' → B ⊨ ℓ ⇒ B' → A ≲ B → A' ≲ B'
-≲after x y le cσ = sim-after (le cσ) (transition-subst cσ x) (transition-subst cσ y)
+≲after x y le σ = sim-after (le σ) (transition-subst σ x) (transition-subst σ y)
 
 -- EQUIVALENCE
 
@@ -357,10 +357,10 @@ open _≈_ public
 ≈dual {A = A} {B} eq .to   = ≲dual {A = A} {B} (eq .to)
 ≈dual {A = A} {B} eq .from = ≲dual {A = B} {A} (eq .from)
 
-≈subst : ∀{m n} {A B : Type m} {σ : Substitution m n} → ClosedSubstitution σ →
+≈subst : ∀{m n} {A B : Type m} (σ : Substitution m n) →
          A ≈ B → subst σ A ≈ subst σ B
-≈subst {A = A} {B} σc eq .to = ≲subst {A = A} {B} σc (eq .to)
-≈subst {A = A} {B} σc eq .from = ≲subst {A = B} {A} σc (eq .from)
+≈subst {A = A} {B} σ eq .to = ≲subst {A = A} {B} σ (eq .to)
+≈subst {A = A} {B} σ eq .from = ≲subst {A = B} {A} σ (eq .from)
 
 ≈rec : ∀{n} {A : PreType n (suc zero)} → rec A ≈ unfold A
 ≈rec {n} {A} .to = ≲rec-unfold {n} {A}
@@ -381,60 +381,60 @@ void⨟A≈void .to cσ .Sim.next (seq⅋ tr) = contradiction tr void-no-transit
 void⨟A≈void .from cσ .Sim.next tr = contradiction tr void-no-transitions
 
 A≈skip⨟A : ∀{n} {A : Type n} → A ≈ (skip ⨟ A)
-A≈skip⨟A .to cls = sim-A-skip⨟A
-A≈skip⨟A .from cls = sim-skip⨟A-A
+A≈skip⨟A .to _ = sim-A-skip⨟A
+A≈skip⨟A .from _ = sim-skip⨟A-A
 
 A≈A⨟skip : ∀{n} {A : Type n} → A ≈ (A ⨟ skip)
-A≈A⨟skip .to cls = sim-A-A⨟skip
-A≈A⨟skip .from cls = A⨟skip-sim-A
+A≈A⨟skip .to _ = sim-A-A⨟skip
+A≈A⨟skip .from _ = A⨟skip-sim-A
 
 ≈assoc : ∀{n} {A B C : Type n} → (A ⨟ (B ⨟ C)) ≈ ((A ⨟ B) ⨟ C)
-≈assoc .to cls = sim-assoc-l
-≈assoc .from cls = sim-assoc-r
+≈assoc .to _ = sim-assoc-l
+≈assoc .from _ = sim-assoc-r
 
 ≈cong⨟ : ∀{n} {A A' B B' : Type n} → A ≈ A' → B ≈ B' → (A ⨟ B) ≈ (A' ⨟ B')
-≈cong⨟ aeq beq .to cσ = sim-cong⨟ (aeq .to cσ) (beq .to cσ)
-≈cong⨟ aeq beq .from cσ = sim-cong⨟ (aeq .from cσ) (beq .from cσ)
+≈cong⨟ aeq beq .to σ = sim-cong⨟ (aeq .to σ) (beq .to σ)
+≈cong⨟ aeq beq .from σ = sim-cong⨟ (aeq .from σ) (beq .from σ)
 
 ≈cong⨟l : ∀{n} {A B C : Type n} → A ≈ B → (A ⨟ C) ≈ (B ⨟ C)
-≈cong⨟l eq .to cls = sim-cong⨟l (eq .to cls)
-≈cong⨟l eq .from cls = sim-cong⨟l (eq .from cls)
+≈cong⨟l eq .to σ = sim-cong⨟l (eq .to σ)
+≈cong⨟l eq .from σ = sim-cong⨟l (eq .from σ)
 
 ≈dist⊕ : ∀{n} {A B C : Type n} → ((A ⊕ B) ⨟ C) ≈ ((A ⨟ C) ⊕ (B ⨟ C))
 ≈dist⊕ .to cls = sim-dist-⊕⨟
 ≈dist⊕ .from cls = sim-dist-⨟⊕
 
 ≈dist& : ∀{n} {A B C : Type n} → ((A & B) ⨟ C) ≈ ((A ⨟ C) & (B ⨟ C))
-≈dist& .to cls = sim-dist-&⨟
-≈dist& .from cls = sim-dist-⨟&
+≈dist& .to _ = sim-dist-&⨟
+≈dist& .from _ = sim-dist-⨟&
 
 ≈⊥ : ∀{n} {A : Type n} → (⊥ ⨟ A) ≈ ⊥
-≈⊥ .to cls = sim-⊥⨟A-⊥
-≈⊥ .from cls = sim-⊥-⊥⨟A
+≈⊥ .to _ = sim-⊥⨟A-⊥
+≈⊥ .from _ = sim-⊥-⊥⨟A
 
 ≈𝟙 : ∀{n} {A : Type n} → (𝟙 ⨟ A) ≈ 𝟙
-≈𝟙 .to cls = sim-𝟙⨟A-𝟙
-≈𝟙 .from cls = sim-𝟙-𝟙⨟A
+≈𝟙 .to _ = sim-𝟙⨟A-𝟙
+≈𝟙 .from _ = sim-𝟙-𝟙⨟A
 
 ≈⊤ : ∀{n} {A : Type n} → (⊤ ⨟ A) ≈ ⊤
-≈⊤ .to cls = sim-⊤⨟A-⊤
-≈⊤ .from cls = sim-⊤-⊤⨟A
+≈⊤ .to _ = sim-⊤⨟A-⊤
+≈⊤ .from _ = sim-⊤-⊤⨟A
 
 ≈𝟘 : ∀{n} {A : Type n} → (𝟘 ⨟ A) ≈ 𝟘
-≈𝟘 .to cls = sim-𝟘⨟A-𝟘
-≈𝟘 .from cls = sim-𝟘-𝟘⨟A
+≈𝟘 .to _ = sim-𝟘⨟A-𝟘
+≈𝟘 .from _ = sim-𝟘-𝟘⨟A
 
 ≈⅋⨟ : ∀{n} {A B C : Type n} → ((A ⅋ B) ⨟ C) ≈ (A ⅋ (B ⨟ C))
-≈⅋⨟ .to cls = sim-assoc-⅋r
-≈⅋⨟ .from cls = sim-assoc-⅋l
+≈⅋⨟ .to _ = sim-assoc-⅋r
+≈⅋⨟ .from _ = sim-assoc-⅋l
 
 ≈⊗⨟ : ∀{n} {A B C : Type n} → ((A ⊗ B) ⨟ C) ≈ (A ⊗ (B ⨟ C))
-≈⊗⨟ .to cls = sim-assoc-⊗r
-≈⊗⨟ .from cls = sim-assoc-⊗l
+≈⊗⨟ .to _ = sim-assoc-⊗r
+≈⊗⨟ .from _ = sim-assoc-⊗l
 
 not≈ : ∀{n} {A B : Type n} → ¬ Sim {n} (subst skip-subst A) (subst skip-subst B) → ¬ A ≈ B
-not≈ nsim eq = contradiction (eq .to skip-cs) nsim
+not≈ nsim eq = contradiction (eq .to skip-subst) nsim
 
 ≈measure : ∀{n} {μ ν} {A B : Type n} → (put μ ⨟ A) ≈ (put ν ⨟ B) → μ ≡ ν
-≈measure {n} {A} {B} eq with eq .to {n} skip-cs .Sim.next (seq put λ ())
+≈measure {n} {A} {B} eq with eq .to {n} skip-subst .Sim.next (seq put λ ())
 ... | _ , seq put _ , _ = refl

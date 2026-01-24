@@ -16,16 +16,16 @@ open import Axioms
 open import Type
 open import Type.Equality
 
--- POLYMORPHISM
-
 record Substitution (m n : ℕ) : Set where
   field
     at : ∀{u} → Fin m → PreType n u
+    co : ∀{u v} (x : Fin m) → at {u} x == at {v} x
 
 open Substitution public
 
 skip-subst : ∀{m n} → Substitution m n
 skip-subst .at _ = skip
+skip-subst .co _ = skip
 
 subst : ∀{n m r} → Substitution n m → PreType n r → PreType m r
 subst σ (var x) = σ .at x
@@ -45,11 +45,32 @@ subst σ (put μ) = put μ
 subst σ (inv x) = inv x
 subst σ (rec A) = rec (subst σ A)
 
+==subst : ∀{m n r s} (σ : Substitution m n) {A : PreType m r} {B : PreType m s} →
+          A == B → subst σ A == subst σ B
+==subst σ skip = skip
+==subst σ bot = bot
+==subst σ one = one
+==subst σ top = top
+==subst σ zero = zero
+==subst σ put = put
+==subst σ get = get
+==subst σ var = σ .co _
+==subst σ rav = dual== (σ .co _)
+==subst σ (seq x y) = seq (==subst σ x) (==subst σ y)
+==subst σ (par x y) = par (==subst σ x) (==subst σ y)
+==subst σ (ten x y) = ten (==subst σ x) (==subst σ y)
+==subst σ (amp x y) = amp (==subst σ x) (==subst σ y)
+==subst σ (plus x y) = plus (==subst σ x) (==subst σ y)
+==subst σ (inv x) = inv x
+==subst σ (rec x) = rec (==subst σ x)
+
 _·_ : ∀{m n o} → Substitution n o → Substitution m n → Substitution m o
 (τ · σ) .at = subst τ ∘ σ .at
+(τ · σ) .co = ==subst τ ∘ σ .co
 
 Dual : ∀{m n} → Substitution m n → Substitution m n
 Dual σ .at = dual ∘ σ .at
+Dual σ .co x = dual== (σ .co x)
 
 dual-subst : ∀{n m r} (σ : Substitution n m) (A : PreType n r) →
              dual (subst σ A) ≡ subst σ (dual A)
@@ -136,15 +157,6 @@ Closed-dual (plus x y) = amp (Closed-dual x) (Closed-dual y)
 Closed-dual (inv x) = inv x
 Closed-dual (rec x) = rec (Closed-dual x)
 
-SameSubstitution : ∀{m n} → Substitution m n → Substitution m n → Set
-SameSubstitution {m} σ σ' = ∀{u v} (x : Fin m) → σ .at {u} x == σ' .at {v} x
-
-ClosedSubstitution : ∀{m n} → Substitution m n → Set
-ClosedSubstitution σ = SameSubstitution σ σ
-
-skip-cs : ∀{m n} → ClosedSubstitution {m} {n} skip-subst
-skip-cs _ = skip
-
 rec-subst-Closed : ∀{n r s t}
                    (k : ℕ)
                    {τ : Fin r → PreType n s} → IdentitySubstitution k τ →
@@ -188,77 +200,72 @@ rec-subst-Closed k iτ (rec ca) (rec x) = rec (rec-subst-Closed (suc k) (exts-id
 
 rec-subst-cs : ∀{m n r s}
                (τ : Fin r → PreType n s) →
-               {σ : Substitution m n} → ClosedSubstitution σ →
+               (σ : Substitution m n) →
                (x : Fin m) → rec-subst τ (σ .at x) ≡ σ .at x
-rec-subst-cs {_} {_} {r} {s} τ {σ} cσ x with id-zero τ
-... | iτ with rec-subst-Closed {_} {_} {_} {s} 0 iτ (==Closed (cσ x)) (cσ x)
-... | p = ==≡ (==trans p (cσ x))
-
-dual-cs : ∀{m n} {σ : Substitution m n} →
-          ClosedSubstitution σ → ClosedSubstitution (Dual σ)
-dual-cs cσ x = dual== (cσ x)
+rec-subst-cs {_} {_} {r} {s} τ σ x with id-zero τ
+... | iτ with rec-subst-Closed {_} {_} {_} {s} 0 iτ (==Closed (σ .co x)) (σ .co x)
+... | p = ==≡ (==trans p (σ .co x))
 
 rename-cs : ∀{m n r s} (ρ : Fin r → Fin s) →
-            {σ : Substitution m n} → ClosedSubstitution σ →
+            (σ : Substitution m n) →
             (x : Fin m) → rename ρ (σ .at x) ≡ σ .at x
-rename-cs ρ {σ} cσ x =
+rename-cs ρ σ x =
   begin
     rename ρ (σ .at x) ≡⟨ rename-as-subst ρ (σ .at x) ⟩
-    rec-subst (inv ∘ ρ) (σ .at x) ≡⟨ rec-subst-cs (inv ∘ ρ) cσ x ⟩
+    rec-subst (inv ∘ ρ) (σ .at x) ≡⟨ rec-subst-cs (inv ∘ ρ) σ x ⟩
     σ .at x ∎
   where open Eq.≡-Reasoning
 
 rename-subst : ∀{m n r s}
-               (ρ : Fin r → Fin s) {σ : Substitution m n} →
-               ClosedSubstitution σ → (A : PreType m r) →
+               (ρ : Fin r → Fin s) (σ : Substitution m n) →
+               (A : PreType m r) →
                rename ρ (subst σ A) ≡ subst σ (rename ρ A)
-rename-subst ρ cσ (var x) = rename-cs ρ cσ x
-rename-subst ρ cσ (rav x) = rename-cs ρ (dual-cs cσ) x
-rename-subst ρ cσ skip = refl
-rename-subst ρ cσ ⊤ = refl
-rename-subst ρ cσ 𝟘 = refl
-rename-subst ρ cσ ⊥ = refl
-rename-subst ρ cσ 𝟙 = refl
-rename-subst ρ cσ (A ⨟ B) = cong₂ _⨟_ (rename-subst ρ cσ A) (rename-subst ρ cσ B)
-rename-subst ρ cσ (A & B) = cong₂ _&_ (rename-subst ρ cσ A) (rename-subst ρ cσ B)
-rename-subst ρ cσ (A ⊕ B) = cong₂ _⊕_ (rename-subst ρ cσ A) (rename-subst ρ cσ B)
-rename-subst ρ cσ (A ⅋ B) = cong₂ _⅋_ (rename-subst ρ cσ A) (rename-subst ρ cσ B)
-rename-subst ρ cσ (A ⊗ B) = cong₂ _⊗_ (rename-subst ρ cσ A) (rename-subst ρ cσ B)
-rename-subst ρ cσ (get x) = refl
-rename-subst ρ cσ (put x) = refl
-rename-subst ρ cσ (inv x) = refl
-rename-subst ρ cσ (rec A) = cong rec (rename-subst (ext ρ) cσ A)
+rename-subst ρ σ (var x) = rename-cs ρ σ x
+rename-subst ρ σ (rav x) = rename-cs ρ (Dual σ) x
+rename-subst ρ σ skip = refl
+rename-subst ρ σ ⊤ = refl
+rename-subst ρ σ 𝟘 = refl
+rename-subst ρ σ ⊥ = refl
+rename-subst ρ σ 𝟙 = refl
+rename-subst ρ σ (A ⨟ B) = cong₂ _⨟_ (rename-subst ρ σ A) (rename-subst ρ σ B)
+rename-subst ρ σ (A & B) = cong₂ _&_ (rename-subst ρ σ A) (rename-subst ρ σ B)
+rename-subst ρ σ (A ⊕ B) = cong₂ _⊕_ (rename-subst ρ σ A) (rename-subst ρ σ B)
+rename-subst ρ σ (A ⅋ B) = cong₂ _⅋_ (rename-subst ρ σ A) (rename-subst ρ σ B)
+rename-subst ρ σ (A ⊗ B) = cong₂ _⊗_ (rename-subst ρ σ A) (rename-subst ρ σ B)
+rename-subst ρ σ (get x) = refl
+rename-subst ρ σ (put x) = refl
+rename-subst ρ σ (inv x) = refl
+rename-subst ρ σ (rec A) = cong rec (rename-subst (ext ρ) σ A)
 
 exts-subst : ∀{m n r s} (τ : Fin r → PreType m s)
-             {σ : Substitution m n} → ClosedSubstitution σ →
+             (σ : Substitution m n) →
              exts (subst σ ∘ τ) ≡ subst σ ∘ exts τ
 exts-subst τ closed = extensionality (aux τ closed)
   where
-    aux : ∀{m n r s} (τ : Fin r → PreType m s)
-          {σ : Substitution m n} → ClosedSubstitution σ →
+    aux : ∀{m n r s} (τ : Fin r → PreType m s) (σ : Substitution m n) →
           (x : Fin (suc r)) → exts (subst σ ∘ τ) x ≡ subst σ (exts τ x)
-    aux τ cσ zero = refl
-    aux τ cσ (suc x) = rename-subst suc cσ (τ x)
+    aux τ σ zero = refl
+    aux τ σ (suc x) = rename-subst suc σ (τ x)
 
 rec-subst-subst : ∀{m n r s} (τ : Fin r → PreType m s)
-                  {σ : Substitution m n} → ClosedSubstitution σ →
+                  (σ : Substitution m n) →
                   (A : PreType m r) → rec-subst (subst σ ∘ τ) (subst σ A) ≡ subst σ (rec-subst τ A)
-rec-subst-subst τ {σ} cσ (var x) = rec-subst-cs (subst σ ∘ τ) cσ x
-rec-subst-subst τ {σ} cσ (rav x) = rec-subst-cs (subst σ ∘ τ) (dual-cs cσ) x
-rec-subst-subst τ cσ skip = refl
-rec-subst-subst τ cσ ⊤ = refl
-rec-subst-subst τ cσ 𝟘 = refl
-rec-subst-subst τ cσ ⊥ = refl
-rec-subst-subst τ cσ 𝟙 = refl
-rec-subst-subst τ cσ (A ⨟ B) = cong₂ _⨟_ (rec-subst-subst τ cσ A) (rec-subst-subst τ cσ B)
-rec-subst-subst τ cσ (A & B) = cong₂ _&_ (rec-subst-subst τ cσ A) (rec-subst-subst τ cσ B)
-rec-subst-subst τ cσ (A ⊕ B) = cong₂ _⊕_ (rec-subst-subst τ cσ A) (rec-subst-subst τ cσ B)
-rec-subst-subst τ cσ (A ⅋ B) = cong₂ _⅋_ (rec-subst-subst τ cσ A) (rec-subst-subst τ cσ B)
-rec-subst-subst τ cσ (A ⊗ B) = cong₂ _⊗_ (rec-subst-subst τ cσ A) (rec-subst-subst τ cσ B)
-rec-subst-subst τ cσ (get x) = refl
-rec-subst-subst τ cσ (put x) = refl
-rec-subst-subst τ cσ (inv x) = refl
-rec-subst-subst τ cσ (rec A) rewrite exts-subst τ cσ = cong rec (rec-subst-subst (exts τ) cσ A)
+rec-subst-subst τ σ (var x) = rec-subst-cs (subst σ ∘ τ) σ x
+rec-subst-subst τ σ (rav x) = rec-subst-cs (subst σ ∘ τ) (Dual σ) x
+rec-subst-subst τ σ skip = refl
+rec-subst-subst τ σ ⊤ = refl
+rec-subst-subst τ σ 𝟘 = refl
+rec-subst-subst τ σ ⊥ = refl
+rec-subst-subst τ σ 𝟙 = refl
+rec-subst-subst τ σ (A ⨟ B) = cong₂ _⨟_ (rec-subst-subst τ σ A) (rec-subst-subst τ σ B)
+rec-subst-subst τ σ (A & B) = cong₂ _&_ (rec-subst-subst τ σ A) (rec-subst-subst τ σ B)
+rec-subst-subst τ σ (A ⊕ B) = cong₂ _⊕_ (rec-subst-subst τ σ A) (rec-subst-subst τ σ B)
+rec-subst-subst τ σ (A ⅋ B) = cong₂ _⅋_ (rec-subst-subst τ σ A) (rec-subst-subst τ σ B)
+rec-subst-subst τ σ (A ⊗ B) = cong₂ _⊗_ (rec-subst-subst τ σ A) (rec-subst-subst τ σ B)
+rec-subst-subst τ σ (get x) = refl
+rec-subst-subst τ σ (put x) = refl
+rec-subst-subst τ σ (inv x) = refl
+rec-subst-subst τ σ (rec A) rewrite exts-subst τ σ = cong rec (rec-subst-subst (exts τ) σ A)
 
 s-just-subst : ∀{m n r} (σ : Substitution m n) →
                (A : PreType m r) → s-just (subst σ A) ≡ subst σ ∘ s-just A
@@ -268,46 +275,16 @@ s-just-subst {m} {n} {r} σ A = extensionality aux
     aux zero = refl
     aux (suc x) = refl
 
-unfold-subst : ∀{m n r} {σ : Substitution m n} → ClosedSubstitution σ →
+unfold-subst : ∀{m n r} (σ : Substitution m n) →
                (A : PreType m (suc r)) → unfold (subst σ A) ≡ subst σ (unfold A)
-unfold-subst {m} {n} {r} {σ} closed A =
+unfold-subst {m} {n} {r} σ A =
   begin
     unfold (subst σ A) ≡⟨⟩
     rec-subst (s-just (rec (subst σ A))) (subst σ A) ≡⟨⟩
     rec-subst (s-just (subst σ (rec A))) (subst σ A) ≡⟨ cong (λ x → rec-subst x (subst σ A)) (s-just-subst σ (rec A)) ⟩
-    rec-subst (subst σ ∘ s-just (rec A)) (subst σ A) ≡⟨ rec-subst-subst (s-just (rec A)) closed A ⟩
+    rec-subst (subst σ ∘ s-just (rec A)) (subst σ A) ≡⟨ rec-subst-subst (s-just (rec A)) σ A ⟩
     subst σ (rec-subst (s-just (rec A)) A) ≡⟨⟩
     subst σ (unfold A)
   ∎
   where
     open Eq.≡-Reasoning
-
-same-substitutions : ∀{m n r s} {σ τ : Substitution m n}
-                     {A : PreType m r} {B : PreType m s} → A == B →
-                     SameSubstitution σ τ → subst σ A == subst τ B
-same-substitutions skip same = skip
-same-substitutions bot same = bot
-same-substitutions one same = one
-same-substitutions top same = top
-same-substitutions zero same = zero
-same-substitutions put same = put
-same-substitutions get same = get
-same-substitutions var same = same _
-same-substitutions rav same = dual== (same _)
-same-substitutions (seq x x₁) same = seq (same-substitutions x same) (same-substitutions x₁ same)
-same-substitutions (par x x₁) same = par (same-substitutions x same) (same-substitutions x₁ same)
-same-substitutions (ten x x₁) same = ten (same-substitutions x same) (same-substitutions x₁ same)
-same-substitutions (amp x x₁) same = amp (same-substitutions x same) (same-substitutions x₁ same)
-same-substitutions (plus x x₁) same = plus (same-substitutions x same) (same-substitutions x₁ same)
-same-substitutions (inv x) same = inv x
-same-substitutions (rec x) same = rec (same-substitutions x same)
-
-same-substitutions-id : ∀{m n} {σ : Substitution m n} →
-                        ClosedSubstitution σ → SameSubstitution σ σ
-same-substitutions-id cσ x = cσ x
-
-subst-cs : ∀{m n o}
-           {σ : Substitution m n} → ClosedSubstitution σ →
-           {τ : Substitution n o} → ClosedSubstitution τ →
-           ClosedSubstitution (τ · σ)
-subst-cs {σ = σ} cσ {τ} cτ {u} {v} x = same-substitutions (cσ x) (same-substitutions-id cτ)
