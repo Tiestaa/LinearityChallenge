@@ -19,7 +19,7 @@ open import Process
 open import Congruence
 
 data _⊢_↝_ {n Σ Γ} (ℙ : Def Σ) : ∀{Δ μ ν} → Proc {n} Σ μ Γ → Proc Σ ν Δ → Set where
-  r-call      : ∀{T} (x : T ∈ Σ) {σ : ∀{u} → Fin (T .ProcType.n) → PreType n u}
+  r-call      : ∀{T} (x : T ∈ Σ) {σ : Substitution (T .ProcType.n) n}
                 (cσ : ClosedSubstitution σ) → (π : substc σ (T .ProcType.context) ↭ Γ) →
                 ℙ ⊢ call x cσ π ↝ ↭proc π (substp cσ (ℙ x))
   r-link      : ∀{Δ A B C μ ν} {P : Proc Σ ν (B ∷ Δ)} (eq : dual A ≈ B) (eq' : dual A ≈ C) (p : Γ ≃ [ C ] + Δ) →

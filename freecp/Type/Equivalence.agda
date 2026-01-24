@@ -280,7 +280,7 @@ sim⅋⊗ sim with sim .Sim.next ⅋L
 -- HALF EQUIVALENCE
 
 _≲_ : ∀{n} → Type n → Type n → Set
-_≲_ {n} A B = ∀{m} {σ : ∀{u} → Fin n → PreType m u} → ClosedSubstitution σ → Sim (subst σ A) (subst σ B)
+_≲_ {n} A B = ∀{m} {σ : Substitution n m} → ClosedSubstitution σ → Sim (subst σ A) (subst σ B)
 
 ≲refl : ∀{n} {A : Type n} → A ≲ A
 ≲refl cls = sim-refl
@@ -301,14 +301,12 @@ _≲_ {n} A B = ∀{m} {σ : ∀{u} → Fin n → PreType m u} → ClosedSubstit
 ≲skip-left : ∀{n} {A : Type n} → A ≲ (skip ⨟ A)
 ≲skip-left cls .Sim.next tr = _ , seqε skip tr , sim-refl
 
-≲subst : ∀{m n} {A B : Type m}
-         {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
+≲subst : ∀{m n} {A B : Type m} {σ : Substitution m n} → ClosedSubstitution σ →
          A ≲ B → subst σ A ≲ subst σ B
 ≲subst {A = A} {B} {σ} σc le {_} {τ} τc rewrite subst-compose σ τ A | subst-compose σ τ B = le (subst-cs σc τc)
 
-transition-subst : ∀{m n ℓ} {A B : Type m} →
-        {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
-        A ⊨ ℓ ⇒ B → subst σ A ⊨ ℓ ⇒ subst σ B
+transition-subst : ∀{m n ℓ} {A B : Type m} {σ : Substitution m n} → ClosedSubstitution σ →
+                   A ⊨ ℓ ⇒ B → subst σ A ⊨ ℓ ⇒ subst σ B
 transition-subst cσ skip = skip
 transition-subst cσ ⊥ = ⊥
 transition-subst cσ 𝟙 = 𝟙
@@ -359,8 +357,7 @@ open _≈_ public
 ≈dual {A = A} {B} eq .to   = ≲dual {A = A} {B} (eq .to)
 ≈dual {A = A} {B} eq .from = ≲dual {A = B} {A} (eq .from)
 
-≈subst : ∀{m n} {A B : Type m}
-         {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
+≈subst : ∀{m n} {A B : Type m} {σ : Substitution m n} → ClosedSubstitution σ →
          A ≈ B → subst σ A ≈ subst σ B
 ≈subst {A = A} {B} σc eq .to = ≲subst {A = A} {B} σc (eq .to)
 ≈subst {A = A} {B} σc eq .from = ≲subst {A = B} {A} σc (eq .from)

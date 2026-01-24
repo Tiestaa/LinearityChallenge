@@ -63,10 +63,10 @@ Closed-dual (plus x y) = amp (Closed-dual x) (Closed-dual y)
 Closed-dual (inv x) = inv x
 Closed-dual (rec x) = rec (Closed-dual x)
 
-SameSubstitution : ∀{m n} → (∀{u} → Fin m → PreType n u) → (∀{u} → Fin m → PreType n u) → Set
+SameSubstitution : ∀{m n} → Substitution m n → Substitution m n → Set
 SameSubstitution {m} σ σ' = ∀{u v} (x : Fin m) → σ {u} x == σ' {v} x
 
-ClosedSubstitution : ∀{m n} → (∀{u} → Fin m → PreType n u) → Set
+ClosedSubstitution : ∀{m n} → Substitution m n → Set
 ClosedSubstitution σ = SameSubstitution σ σ
 
 skip-cs : ∀{m n} → ClosedSubstitution {m} {n} (λ _ → skip)
@@ -115,18 +115,18 @@ rec-subst-Closed k iτ (rec ca) (rec x) = rec (rec-subst-Closed (suc k) (exts-id
 
 rec-subst-cs : ∀{m n r s}
                (τ : Fin r → PreType n s) →
-               {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
+               {σ : Substitution m n} → ClosedSubstitution σ →
                (x : Fin m) → rec-subst τ (σ x) ≡ σ x
 rec-subst-cs {_} {_} {r} {s} τ {σ} cσ x with id-zero τ
 ... | iτ with rec-subst-Closed {_} {_} {_} {s} 0 iτ (==Closed (cσ x)) (cσ x)
 ... | p = ==≡ (==trans p (cσ x))
 
-dual-cs : ∀{m n} {σ : ∀{u} → Fin m → PreType n u} →
+dual-cs : ∀{m n} {σ : Substitution m n} →
           ClosedSubstitution σ → ClosedSubstitution (dual ∘ σ)
 dual-cs cσ x = dual== (cσ x)
 
 rename-cs : ∀{m n r s} (ρ : Fin r → Fin s) →
-            {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
+            {σ : Substitution m n} → ClosedSubstitution σ →
             (x : Fin m) → rename ρ (σ x) ≡ σ x
 rename-cs ρ {σ} cσ x =
   begin
@@ -136,7 +136,7 @@ rename-cs ρ {σ} cσ x =
   where open Eq.≡-Reasoning
 
 rename-subst : ∀{m n r s}
-               (ρ : Fin r → Fin s) {σ : ∀{u} → Fin m → PreType n u} →
+               (ρ : Fin r → Fin s) {σ : Substitution m n} →
                ClosedSubstitution σ → (A : PreType m r) →
                rename ρ (subst σ A) ≡ subst σ (rename ρ A)
 rename-subst ρ cσ (var x) = rename-cs ρ cσ x
@@ -157,18 +157,18 @@ rename-subst ρ cσ (inv x) = refl
 rename-subst ρ cσ (rec A) = cong rec (rename-subst (ext ρ) cσ A)
 
 exts-subst : ∀{m n r s} (τ : Fin r → PreType m s)
-             {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
+             {σ : Substitution m n} → ClosedSubstitution σ →
              exts (subst σ ∘ τ) ≡ subst σ ∘ exts τ
 exts-subst τ closed = extensionality (aux τ closed)
   where
     aux : ∀{m n r s} (τ : Fin r → PreType m s)
-          {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
+          {σ : Substitution m n} → ClosedSubstitution σ →
           (x : Fin (suc r)) → exts (subst σ ∘ τ) x ≡ subst σ (exts τ x)
     aux τ cσ zero = refl
     aux τ cσ (suc x) = rename-subst suc cσ (τ x)
 
 rec-subst-subst : ∀{m n r s} (τ : Fin r → PreType m s)
-                  {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
+                  {σ : Substitution m n} → ClosedSubstitution σ →
                   (A : PreType m r) → rec-subst (subst σ ∘ τ) (subst σ A) ≡ subst σ (rec-subst τ A)
 rec-subst-subst τ {σ} cσ (var x) = rec-subst-cs (subst σ ∘ τ) cσ x
 rec-subst-subst τ {σ} cσ (rav x) = rec-subst-cs (subst σ ∘ τ) (dual-cs cσ) x
@@ -187,7 +187,7 @@ rec-subst-subst τ cσ (put x) = refl
 rec-subst-subst τ cσ (inv x) = refl
 rec-subst-subst τ cσ (rec A) rewrite exts-subst τ cσ = cong rec (rec-subst-subst (exts τ) cσ A)
 
-s-just-subst : ∀{m n r} (σ : ∀{u} → Fin m → PreType n u) →
+s-just-subst : ∀{m n r} (σ : Substitution m n) →
                (A : PreType m r) → s-just (subst σ A) ≡ subst σ ∘ s-just A
 s-just-subst {m} {n} {r} σ A = extensionality aux
   where
@@ -195,7 +195,7 @@ s-just-subst {m} {n} {r} σ A = extensionality aux
     aux zero = refl
     aux (suc x) = refl
 
-unfold-subst : ∀{m n r} {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
+unfold-subst : ∀{m n r} {σ : Substitution m n} → ClosedSubstitution σ →
                (A : PreType m (suc r)) → unfold (subst σ A) ≡ subst σ (unfold A)
 unfold-subst {m} {n} {r} {σ} closed A =
   begin
@@ -209,7 +209,7 @@ unfold-subst {m} {n} {r} {σ} closed A =
   where
     open Eq.≡-Reasoning
 
-same-substitutions : ∀{m n r s} {σ τ : ∀{u} → Fin m → PreType n u}
+same-substitutions : ∀{m n r s} {σ τ : Substitution m n}
                      {A : PreType m r} {B : PreType m s} → A == B →
                      SameSubstitution σ τ → subst σ A == subst τ B
 same-substitutions skip same = skip
@@ -229,13 +229,13 @@ same-substitutions (plus x x₁) same = plus (same-substitutions x same) (same-s
 same-substitutions (inv x) same = inv x
 same-substitutions (rec x) same = rec (same-substitutions x same)
 
-same-substitutions-id : ∀{m n} {σ : ∀{u} → Fin m → PreType n u} →
+same-substitutions-id : ∀{m n} {σ : Substitution m n} →
                         ClosedSubstitution σ → SameSubstitution σ σ
 same-substitutions-id cσ x = cσ x
 
 subst-cs : ∀{m n o}
-           {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
-           {τ : ∀{u} → Fin n → PreType o u} → ClosedSubstitution τ →
+           {σ : Substitution m n} → ClosedSubstitution σ →
+           {τ : Substitution n o} → ClosedSubstitution τ →
            ClosedSubstitution (subst τ ∘ σ)
 subst-cs {σ = σ} cσ {τ} cτ {u} {v} x = same-substitutions (cσ x) (same-substitutions-id cτ)
 

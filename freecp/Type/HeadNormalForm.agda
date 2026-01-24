@@ -16,10 +16,10 @@ open import Type.Transitions
 open import Type.Equivalence
 open import Type.Substitutions
 
-data Visible {n r} (A : PreType n r) : Set where
-  visible : ∀{m ℓ B} {σ : ∀{u} → Fin n → PreType m u} → ClosedSubstitution σ → subst σ A ⊨ ℓ ⇒ B → Visible A
+data Visible {n} (A : Type n) : Set where
+  visible : ∀{m ℓ B} {σ : Substitution n m} → ClosedSubstitution σ → subst σ A ⊨ ℓ ⇒ B → Visible A
 
-data HeadNormalForm {n r} : PreType n r → Set where
+data HeadNormalForm {n} : Type n → Set where
   null : HeadNormalForm void
   skip : HeadNormalForm skip
   bot  : HeadNormalForm ⊥
@@ -35,7 +35,7 @@ data HeadNormalForm {n r} : PreType n r → Set where
   amp  : ∀{A B} → HeadNormalForm (A & B)
   plus : ∀{A B} → HeadNormalForm (A ⊕ B)
 
-nfseq : ∀{n} {A : Type n} → HeadNormalForm A → {B : Type n} → A ≡ skip ⊎ ∃[ N ] HeadNormalForm {n} {0} N × (A ⨟ B) ≈ N
+nfseq : ∀{n} {A : Type n} → HeadNormalForm A → {B : Type n} → A ≡ skip ⊎ ∃[ N ] HeadNormalForm N × (A ⨟ B) ≈ N
 nfseq null = inj₂ (void , null , void⨟A≈void)
 nfseq skip = inj₁ refl
 nfseq bot = inj₂ (_ , bot , ≈⊥)
@@ -52,13 +52,13 @@ nfseq amp = inj₂ (_ , amp , ≈dist&)
 nfseq plus = inj₂ (_ , plus , ≈dist⊕)
 
 skip-transition : ∀{m n ℓ B} {A : Type m} → A ≈ skip →
-                  {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
+                  {σ : Substitution m n} → ClosedSubstitution σ →
                   subst σ A ⊨ ℓ ⇒ B → ℓ ≡ ε
 skip-transition eq cσ tr with eq .from cσ .Sim.next skip
 ... | _ , tr' , _ = only-skip tr' tr
 
 nf-transition : ∀{m n ℓ B} (A : Type m)
-                {σ : ∀{u} → Fin m → PreType n u} → ClosedSubstitution σ →
+                {σ : Substitution m n} → ClosedSubstitution σ →
                 subst σ A ⊨ ℓ ⇒ B → ∃[ N ] HeadNormalForm N × A ≈ N
 nf-transition (var x) cσ tr = _ , var , A≈A⨟skip
 nf-transition (rav x) cσ tr = _ , rav , A≈A⨟skip

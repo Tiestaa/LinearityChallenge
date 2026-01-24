@@ -76,10 +76,8 @@ curry∗ F px σ qx = F (px ⟨ σ ⟩ qx)
 substc : ∀{m n} → (∀{s} → Fin m → PreType n s) → Context m → Context n
 substc σ = map (subst σ)
 
-substc-compose : ∀{m n o}
-                 (σ₁ : ∀{u} → Fin m → PreType n u) (σ₂ : ∀{u} → Fin n → PreType o u) →
-                 (Γ : Context m) →
-                 substc σ₂ (substc σ₁ Γ) ≡ substc (subst σ₂ ∘ σ₁) Γ
+substc-compose : ∀{m n o} (σ₁ : Substitution m n) (σ₂ : Substitution n o)
+                 (Γ : Context m) → substc σ₂ (substc σ₁ Γ) ≡ substc (subst σ₂ ∘ σ₁) Γ
 substc-compose σ₁ σ₂ [] = refl
 substc-compose σ₁ σ₂ (A ∷ Γ) = cong₂ _∷_ (subst-compose σ₁ σ₂ A) (substc-compose σ₁ σ₂ Γ)
 
