@@ -196,69 +196,8 @@ rename-as-subst ρ (rec A) =
     rec (rec-subst (exts (inv ∘ ρ)) A) ∎
   where open Eq.≡-Reasoning
 
--- POLYMORPHISM
-
-Substitution : ℕ → ℕ → Set
-Substitution m n = ∀{u} → Fin m → PreType n u
-
-subst : ∀{n m r} → Substitution n m → PreType n r → PreType m r
-subst σ (var x) = σ x
-subst σ (rav x) = dual (σ x)
-subst σ skip = skip
-subst σ ⊤ = ⊤
-subst σ 𝟘 = 𝟘
-subst σ ⊥ = ⊥
-subst σ 𝟙 = 𝟙
-subst σ (A ⨟ B) = subst σ A ⨟ subst σ B
-subst σ (A & B) = subst σ A & subst σ B
-subst σ (A ⊕ B) = subst σ A ⊕ subst σ B
-subst σ (A ⅋ B) = subst σ A ⅋ subst σ B
-subst σ (A ⊗ B) = subst σ A ⊗ subst σ B
-subst σ (get μ) = get μ
-subst σ (put μ) = put μ
-subst σ (inv x) = inv x
-subst σ (rec A) = rec (subst σ A)
-
-dual-subst : ∀{n m r} (σ : Substitution n m) (A : PreType n r) →
-             dual (subst σ A) ≡ subst σ (dual A)
-dual-subst σ (var x) = refl
-dual-subst σ (rav x) = refl
-dual-subst σ skip = refl
-dual-subst σ ⊤ = refl
-dual-subst σ 𝟘 = refl
-dual-subst σ ⊥ = refl
-dual-subst σ 𝟙 = refl
-dual-subst σ (A ⨟ B) = cong₂ _⨟_ (dual-subst σ A) (dual-subst σ B)
-dual-subst σ (A & B) = cong₂ _⊕_ (dual-subst σ A) (dual-subst σ B)
-dual-subst σ (A ⊕ B) = cong₂ _&_ (dual-subst σ A) (dual-subst σ B)
-dual-subst σ (A ⅋ B) = cong₂ _⊗_ (dual-subst σ A) (dual-subst σ B)
-dual-subst σ (A ⊗ B) = cong₂ _⅋_ (dual-subst σ A) (dual-subst σ B)
-dual-subst σ (get μ) = refl
-dual-subst σ (put μ) = refl
-dual-subst σ (inv x) = refl
-dual-subst σ (rec A) = cong rec (dual-subst σ A)
-
 Type : ℕ → Set
 Type n = PreType n 0
 
-void : ∀{n r} → PreType n r
+void : ∀{n} → Type n
 void = rec (inv zero)
-
-subst-compose : ∀{m n o r} (σ₁ : Substitution m n) (σ₂ : Substitution n o) →
-                (A : PreType m r) → subst σ₂ (subst σ₁ A) ≡ subst (subst σ₂ ∘ σ₁) A
-subst-compose σ₁ σ₂ (var x) = refl
-subst-compose σ₁ σ₂ (rav x) = sym (dual-subst σ₂ (σ₁ x))
-subst-compose σ₁ σ₂ skip = refl
-subst-compose σ₁ σ₂ ⊤ = refl
-subst-compose σ₁ σ₂ 𝟘 = refl
-subst-compose σ₁ σ₂ ⊥ = refl
-subst-compose σ₁ σ₂ 𝟙 = refl
-subst-compose σ₁ σ₂ (A ⨟ B) = cong₂ _⨟_ (subst-compose σ₁ σ₂ A) (subst-compose σ₁ σ₂ B)
-subst-compose σ₁ σ₂ (A & B) = cong₂ _&_ (subst-compose σ₁ σ₂ A) (subst-compose σ₁ σ₂ B)
-subst-compose σ₁ σ₂ (A ⊕ B) = cong₂ _⊕_ (subst-compose σ₁ σ₂ A) (subst-compose σ₁ σ₂ B)
-subst-compose σ₁ σ₂ (A ⅋ B) = cong₂ _⅋_ (subst-compose σ₁ σ₂ A) (subst-compose σ₁ σ₂ B)
-subst-compose σ₁ σ₂ (A ⊗ B) = cong₂ _⊗_ (subst-compose σ₁ σ₂ A) (subst-compose σ₁ σ₂ B)
-subst-compose σ₁ σ₂ (get μ) = refl
-subst-compose σ₁ σ₂ (put μ) = refl
-subst-compose σ₁ σ₂ (inv x) = refl
-subst-compose σ₁ σ₂ (rec A) = cong rec (subst-compose σ₁ σ₂ A)

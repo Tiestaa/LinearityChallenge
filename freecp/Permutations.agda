@@ -5,6 +5,7 @@ open import Data.List.Base using (List; []; _∷_; [_]; _++_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
 open import Type
+open import Type.Substitutions
 open import Context
 
 data _↭_ {n} : Context n → Context n → Set where
@@ -59,7 +60,7 @@ data _↭_ {n} : Context n → Context n → Set where
 ↭left {Θ = []} π = π
 ↭left {Θ = _ ∷ _} π = prep (↭left π)
 
-↭subst : ∀{m n}{Γ Δ : Context m} (σ : ∀{s} → Fin m → PreType n s) → Γ ↭ Δ → substc σ Γ ↭ substc σ Δ
+↭subst : ∀{m n}{Γ Δ : Context m} (σ : Substitution m n) → Γ ↭ Δ → substc σ Γ ↭ substc σ Δ
 ↭subst σ refl = refl
 ↭subst σ swap = swap
 ↭subst σ (prep π) = prep (↭subst σ π)

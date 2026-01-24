@@ -432,7 +432,7 @@ A≈A⨟skip .from cls = A⨟skip-sim-A
 ≈⊗⨟ .to cls = sim-assoc-⊗r
 ≈⊗⨟ .from cls = sim-assoc-⊗l
 
-not≈ : ∀{n} {A B : Type n} → ¬ Sim {n} (subst (λ _ → skip) A) (subst (λ _ → skip) B) → ¬ A ≈ B
+not≈ : ∀{n} {A B : Type n} → ¬ Sim {n} (subst skip-subst A) (subst skip-subst B) → ¬ A ≈ B
 not≈ nsim eq = contradiction (eq .to skip-cs) nsim
 
 ≈measure : ∀{n} {μ ν} {A B : Type n} → (put μ ⨟ A) ≈ (put ν ⨟ B) → μ ≡ ν

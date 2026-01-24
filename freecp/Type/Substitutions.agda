@@ -16,6 +16,79 @@ open import Axioms
 open import Type
 open import Type.Equality
 
+-- POLYMORPHISM
+
+record Substitution (m n : ℕ) : Set where
+  field
+    at : ∀{u} → Fin m → PreType n u
+
+open Substitution public
+
+skip-subst : ∀{m n} → Substitution m n
+skip-subst .at _ = skip
+
+subst : ∀{n m r} → Substitution n m → PreType n r → PreType m r
+subst σ (var x) = σ .at x
+subst σ (rav x) = dual (σ .at x)
+subst σ skip = skip
+subst σ ⊤ = ⊤
+subst σ 𝟘 = 𝟘
+subst σ ⊥ = ⊥
+subst σ 𝟙 = 𝟙
+subst σ (A ⨟ B) = subst σ A ⨟ subst σ B
+subst σ (A & B) = subst σ A & subst σ B
+subst σ (A ⊕ B) = subst σ A ⊕ subst σ B
+subst σ (A ⅋ B) = subst σ A ⅋ subst σ B
+subst σ (A ⊗ B) = subst σ A ⊗ subst σ B
+subst σ (get μ) = get μ
+subst σ (put μ) = put μ
+subst σ (inv x) = inv x
+subst σ (rec A) = rec (subst σ A)
+
+_·_ : ∀{m n o} → Substitution n o → Substitution m n → Substitution m o
+(τ · σ) .at = subst τ ∘ σ .at
+
+Dual : ∀{m n} → Substitution m n → Substitution m n
+Dual σ .at = dual ∘ σ .at
+
+dual-subst : ∀{n m r} (σ : Substitution n m) (A : PreType n r) →
+             dual (subst σ A) ≡ subst σ (dual A)
+dual-subst σ (var x) = refl
+dual-subst σ (rav x) = refl
+dual-subst σ skip = refl
+dual-subst σ ⊤ = refl
+dual-subst σ 𝟘 = refl
+dual-subst σ ⊥ = refl
+dual-subst σ 𝟙 = refl
+dual-subst σ (A ⨟ B) = cong₂ _⨟_ (dual-subst σ A) (dual-subst σ B)
+dual-subst σ (A & B) = cong₂ _⊕_ (dual-subst σ A) (dual-subst σ B)
+dual-subst σ (A ⊕ B) = cong₂ _&_ (dual-subst σ A) (dual-subst σ B)
+dual-subst σ (A ⅋ B) = cong₂ _⊗_ (dual-subst σ A) (dual-subst σ B)
+dual-subst σ (A ⊗ B) = cong₂ _⅋_ (dual-subst σ A) (dual-subst σ B)
+dual-subst σ (get μ) = refl
+dual-subst σ (put μ) = refl
+dual-subst σ (inv x) = refl
+dual-subst σ (rec A) = cong rec (dual-subst σ A)
+
+subst-compose : ∀{m n o r} (σ₁ : Substitution m n) (σ₂ : Substitution n o) →
+                (A : PreType m r) → subst σ₂ (subst σ₁ A) ≡ subst (σ₂ · σ₁) A
+subst-compose σ₁ σ₂ (var x) = refl
+subst-compose σ₁ σ₂ (rav x) = sym (dual-subst σ₂ (σ₁ .at x))
+subst-compose σ₁ σ₂ skip = refl
+subst-compose σ₁ σ₂ ⊤ = refl
+subst-compose σ₁ σ₂ 𝟘 = refl
+subst-compose σ₁ σ₂ ⊥ = refl
+subst-compose σ₁ σ₂ 𝟙 = refl
+subst-compose σ₁ σ₂ (A ⨟ B) = cong₂ _⨟_ (subst-compose σ₁ σ₂ A) (subst-compose σ₁ σ₂ B)
+subst-compose σ₁ σ₂ (A & B) = cong₂ _&_ (subst-compose σ₁ σ₂ A) (subst-compose σ₁ σ₂ B)
+subst-compose σ₁ σ₂ (A ⊕ B) = cong₂ _⊕_ (subst-compose σ₁ σ₂ A) (subst-compose σ₁ σ₂ B)
+subst-compose σ₁ σ₂ (A ⅋ B) = cong₂ _⅋_ (subst-compose σ₁ σ₂ A) (subst-compose σ₁ σ₂ B)
+subst-compose σ₁ σ₂ (A ⊗ B) = cong₂ _⊗_ (subst-compose σ₁ σ₂ A) (subst-compose σ₁ σ₂ B)
+subst-compose σ₁ σ₂ (get μ) = refl
+subst-compose σ₁ σ₂ (put μ) = refl
+subst-compose σ₁ σ₂ (inv x) = refl
+subst-compose σ₁ σ₂ (rec A) = cong rec (subst-compose σ₁ σ₂ A)
+
 IdentitySubstitution : ∀{n r s} → ℕ → (Fin r → PreType n s) → Set
 IdentitySubstitution {_} {r} {s} k τ = ∀{x : Fin r} → toℕ x < k → τ x == inv x
 
@@ -64,12 +137,12 @@ Closed-dual (inv x) = inv x
 Closed-dual (rec x) = rec (Closed-dual x)
 
 SameSubstitution : ∀{m n} → Substitution m n → Substitution m n → Set
-SameSubstitution {m} σ σ' = ∀{u v} (x : Fin m) → σ {u} x == σ' {v} x
+SameSubstitution {m} σ σ' = ∀{u v} (x : Fin m) → σ .at {u} x == σ' .at {v} x
 
 ClosedSubstitution : ∀{m n} → Substitution m n → Set
 ClosedSubstitution σ = SameSubstitution σ σ
 
-skip-cs : ∀{m n} → ClosedSubstitution {m} {n} (λ _ → skip)
+skip-cs : ∀{m n} → ClosedSubstitution {m} {n} skip-subst
 skip-cs _ = skip
 
 rec-subst-Closed : ∀{n r s t}
@@ -116,23 +189,23 @@ rec-subst-Closed k iτ (rec ca) (rec x) = rec (rec-subst-Closed (suc k) (exts-id
 rec-subst-cs : ∀{m n r s}
                (τ : Fin r → PreType n s) →
                {σ : Substitution m n} → ClosedSubstitution σ →
-               (x : Fin m) → rec-subst τ (σ x) ≡ σ x
+               (x : Fin m) → rec-subst τ (σ .at x) ≡ σ .at x
 rec-subst-cs {_} {_} {r} {s} τ {σ} cσ x with id-zero τ
 ... | iτ with rec-subst-Closed {_} {_} {_} {s} 0 iτ (==Closed (cσ x)) (cσ x)
 ... | p = ==≡ (==trans p (cσ x))
 
 dual-cs : ∀{m n} {σ : Substitution m n} →
-          ClosedSubstitution σ → ClosedSubstitution (dual ∘ σ)
+          ClosedSubstitution σ → ClosedSubstitution (Dual σ)
 dual-cs cσ x = dual== (cσ x)
 
 rename-cs : ∀{m n r s} (ρ : Fin r → Fin s) →
             {σ : Substitution m n} → ClosedSubstitution σ →
-            (x : Fin m) → rename ρ (σ x) ≡ σ x
+            (x : Fin m) → rename ρ (σ .at x) ≡ σ .at x
 rename-cs ρ {σ} cσ x =
   begin
-    rename ρ (σ x) ≡⟨ rename-as-subst ρ (σ x) ⟩
-    rec-subst (inv ∘ ρ) (σ x) ≡⟨ rec-subst-cs (inv ∘ ρ) cσ x ⟩
-    σ x ∎
+    rename ρ (σ .at x) ≡⟨ rename-as-subst ρ (σ .at x) ⟩
+    rec-subst (inv ∘ ρ) (σ .at x) ≡⟨ rec-subst-cs (inv ∘ ρ) cσ x ⟩
+    σ .at x ∎
   where open Eq.≡-Reasoning
 
 rename-subst : ∀{m n r s}
@@ -236,6 +309,5 @@ same-substitutions-id cσ x = cσ x
 subst-cs : ∀{m n o}
            {σ : Substitution m n} → ClosedSubstitution σ →
            {τ : Substitution n o} → ClosedSubstitution τ →
-           ClosedSubstitution (subst τ ∘ σ)
+           ClosedSubstitution (τ · σ)
 subst-cs {σ = σ} cσ {τ} cτ {u} {v} x = same-substitutions (cσ x) (same-substitutions-id cτ)
-

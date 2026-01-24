@@ -35,7 +35,7 @@ data Ch {n} (A : Type n) : Context n → Set where
 
 data Proc {n} (Σ : ProcContext) : ℕ → Context n → Set where
   call     : ∀{T} → T ∈ Σ →
-             {σ : ∀{s} → Fin (T .ProcType.n) → PreType n s} → ClosedSubstitution σ →
+             {σ : Substitution (T .ProcType.n) n} → ClosedSubstitution σ →
              ∀[ substc σ (T .context) ↭_ ⇒ Proc Σ (suc (T .measure)) ]
   link     : ∀{A B μ} → dual A ≈ B → ∀[ Ch A ∗ Ch B ⇒ Proc Σ (suc μ) ]
   fail     : ∀{μ} → ∀[ Ch ⊤ ∗ U ⇒ Proc Σ μ ]
@@ -80,7 +80,7 @@ Def Σ = ∀{T} → T ∈ Σ → Proc Σ (T .measure) (T .context)
 ... | Δ₁ , Δ₂ , q , π₁ , π₂ = cut eq (↭proc (prep π₁) P ⟨ q ⟩ ↭proc (prep π₂) Q)
 
 substp : ∀{n m Σ μ} {Γ : Context n}
-         {σ : ∀{s} → Fin n → PreType m s} → ClosedSubstitution σ →
+         {σ : Substitution n m} → ClosedSubstitution σ →
          Proc Σ μ Γ → Proc Σ μ (substc σ Γ)
 substp {σ = σ} σc (call {T} x {σ = σ'} cσ' π) with ↭subst σ π
 ... | π' rewrite substc-compose σ' σ (T .context) = call x (subst-cs cσ' σc) π'

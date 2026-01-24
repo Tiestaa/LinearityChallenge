@@ -8,6 +8,7 @@ open import Relation.Unary
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂)
 
 open import Type
+open import Type.Substitutions
 open import Type.Equivalence
 
 Context : ℕ → Set
@@ -73,15 +74,15 @@ _─∗_ : ∀{n} → Pred (Context n) _ → Pred (Context n) _ → Context n �
 curry∗ : ∀{n} {P Q R : Pred (Context n) _} → ∀[ P ∗ Q ⇒ R ] → ∀[ P ⇒ Q ─∗ R ]
 curry∗ F px σ qx = F (px ⟨ σ ⟩ qx)
 
-substc : ∀{m n} → (∀{s} → Fin m → PreType n s) → Context m → Context n
+substc : ∀{m n} → Substitution m n → Context m → Context n
 substc σ = map (subst σ)
 
 substc-compose : ∀{m n o} (σ₁ : Substitution m n) (σ₂ : Substitution n o)
-                 (Γ : Context m) → substc σ₂ (substc σ₁ Γ) ≡ substc (subst σ₂ ∘ σ₁) Γ
+                 (Γ : Context m) → substc σ₂ (substc σ₁ Γ) ≡ substc (σ₂ · σ₁) Γ
 substc-compose σ₁ σ₂ [] = refl
 substc-compose σ₁ σ₂ (A ∷ Γ) = cong₂ _∷_ (subst-compose σ₁ σ₂ A) (substc-compose σ₁ σ₂ Γ)
 
-+-subst : ∀{m n}{Γ Δ Θ : Context m} (σ : ∀{s} → Fin m → PreType n s) → Γ ≃ Δ + Θ → substc σ Γ ≃ substc σ Δ + substc σ Θ
++-subst : ∀{m n}{Γ Δ Θ : Context m} (σ : Substitution m n) → Γ ≃ Δ + Θ → substc σ Γ ≃ substc σ Δ + substc σ Θ
 +-subst σ • = •
 +-subst σ (< p) = < +-subst σ p
 +-subst σ (> p) = > +-subst σ p
