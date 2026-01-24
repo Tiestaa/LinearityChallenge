@@ -107,9 +107,9 @@ exts σ zero = inv zero
 exts σ (suc k) = rename suc (σ k)
 
 dual-exts : ∀{n r s} (σ : Fin r → PreType n s) → exts (dual ∘ σ) ≡ dual ∘ (exts σ)
-dual-exts {_} {r} σ = extensionality aux
+dual-exts σ = extensionality aux
   where
-    aux : (x : Fin (suc r)) → exts (dual ∘ σ) x ≡ dual ((exts σ) x)
+    aux : ∀ x → exts (dual ∘ σ) x ≡ dual ((exts σ) x)
     aux zero = refl
     aux (suc x) rewrite dual-rename suc (σ x) = refl
 
@@ -155,9 +155,9 @@ s-just A zero     = A
 s-just A (suc x)  = inv x
 
 dual-s-just : ∀{n r} (A : PreType n r) → dual ∘ s-just A ≡ s-just (dual A)
-dual-s-just {_} {r} A = extensionality aux
+dual-s-just A = extensionality aux
   where
-    aux : (x : Fin (suc r)) → (dual ∘ s-just A) x ≡ s-just (dual A) x
+    aux : ∀ x → (dual ∘ s-just A) x ≡ s-just (dual A) x
     aux zero = refl
     aux (suc x) = refl
 
@@ -170,9 +170,9 @@ dual-unfold A rewrite dual-rec-subst (s-just (rec A)) A | dual-s-just (rec A) = 
 {-# REWRITE dual-unfold #-}
 
 exts-inv : ∀{n r s} (ρ : Renaming r s) → exts (inv ∘ ρ) ≡ inv ∘ ext ρ
-exts-inv {n} {r} ρ = extensionality aux
+exts-inv {n} ρ = extensionality aux
   where
-    aux : (x : Fin (suc r)) → exts (inv ∘ ρ) x ≡ (inv {n} ∘ (ext ρ)) x
+    aux : ∀ x → exts (inv ∘ ρ) x ≡ (inv {n} ∘ (ext ρ)) x
     aux zero = refl
     aux (suc x) = refl
 
