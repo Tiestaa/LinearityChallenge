@@ -9,13 +9,118 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.List.Base using (List; []; _∷_; [_])
 open import Relation.Nullary using (¬_; contradiction; contraposition)
 open import Relation.Unary using (Decidable)
-open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl; sym; cong)
+open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl; sym; cong; cong₂)
 
 open import Type
+open import Type.Equality
+open import Type.Transitions
+open import Type.Equivalence
+open import Type.Substitutions
 
 data Kind (r : ℕ) : Set where
   ∗ ε • : Kind r
   ◦     : Fin r → Kind r
+
+data _⦂_ {n r : ℕ} : PreType n r → Kind r → Set where
+  skip : skip ⦂ ε
+  bot  : ⊥ ⦂ •
+  one  : 𝟙 ⦂ •
+  top  : ⊤ ⦂ •
+  zero : 𝟘 ⦂ •
+  put  : ∀{μ} → put μ ⦂ •
+  get  : ∀{μ} → get μ ⦂ •
+  var  : ∀{x} → var x ⦂ ε
+  rav  : ∀{x} → rav x ⦂ ε
+  seqε : ∀{A B k} → A ⦂ ε → B ⦂ k → (A ⨟ B) ⦂ k
+  seq• : ∀{A B} → A ⦂ • → (A ⨟ B) ⦂ •
+  par  : ∀{A B} → (A ⅋ B) ⦂ •
+  ten  : ∀{A B} → (A ⊗ B) ⦂ •
+  amp  : ∀{A B} → (A & B) ⦂ •
+  plus : ∀{A B} → (A ⊕ B) ⦂ •
+  rec  : ∀{A k} → unfold A ⦂ k → rec A ⦂ k
+
+⦂ε-transition : ∀{r} {A : PreType 0 r} → A ⦂ ε → A ⊨ ε ⇒ skip
+⦂ε-transition skip = skip
+⦂ε-transition (seqε x y) = seqε (⦂ε-transition x) (⦂ε-transition y)
+⦂ε-transition (rec x) = rec (⦂ε-transition x)
+
+⦂•-transition : ∀{r} {A : PreType 0 r} → A ⦂ • → ∃[ ℓ ] ∃[ B ] ℓ ≢ ε × A ⊨ ℓ ⇒ B
+⦂•-transition bot = _ , _ , (λ ()) , ⊥
+⦂•-transition one = _ , _ , (λ ()) , 𝟙
+⦂•-transition top = _ , _ , (λ ()) , ⊤
+⦂•-transition zero = _ , _ , (λ ()) , 𝟘
+⦂•-transition put = _ , _ , (λ ()) , put
+⦂•-transition get = _ , _ , (λ ()) , get
+⦂•-transition (seqε x y) with ⦂•-transition y
+... | ℓ , _ , ne , tr = ℓ , _ , ne , seqε (⦂ε-transition x) tr
+⦂•-transition (seq• x) with ⦂•-transition x
+... | ε , _ , ne , tr = contradiction refl ne
+... | ⊥ , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+... | 𝟙 , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+... | ⊤ , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+... | 𝟘 , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+... | &L , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+... | &R , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+... | ⊕L , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+... | ⊕R , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+... | ⅋L , _ , ne , tr = _ , _ , (λ ()) , seq⅋ tr
+... | ⅋R , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+... | ⊗L , _ , ne , tr = _ , _ , (λ ()) , seq⊗ tr
+... | ⊗R , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+... | put x₁ , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+... | get x₁ , _ , ne , tr = _ , _ , (λ ()) , seq tr λ ()
+⦂•-transition par = _ , _ , (λ ()) , ⅋L
+⦂•-transition ten = _ , _ , (λ ()) , ⊗L
+⦂•-transition amp = _ , _ , (λ ()), &L
+⦂•-transition plus = _ , _ , (λ ()) , ⊕L
+⦂•-transition (rec x) with ⦂•-transition x
+... | ℓ , _ , ne , tr = ℓ , _ , ne , rec tr
+
+transition-⦂ε : ∀{n r} {A B : PreType n r} → A ⊨ ε ⇒ B → A ⦂ ε
+transition-⦂ε skip = skip
+transition-⦂ε (seq tr ns) = contradiction ε ns
+transition-⦂ε (seqε tr tr') = seqε (transition-⦂ε tr) (transition-⦂ε tr')
+transition-⦂ε (rec tr) = rec (transition-⦂ε tr)
+
+transition-⦂ : ∀{n r ℓ} {A B : PreType n r} → A ⊨ ℓ ⇒ B → ∃[ k ] A ⦂ k
+transition-⦂ skip = ε , skip
+transition-⦂ ⊥ = • , bot
+transition-⦂ 𝟙 = • , one
+transition-⦂ ⊤ = • , top
+transition-⦂ 𝟘 = • , zero
+transition-⦂ &L = • , amp
+transition-⦂ &R = • , amp
+transition-⦂ ⊕L = • , plus
+transition-⦂ ⊕R = • , plus
+transition-⦂ ⅋L = • , par
+transition-⦂ ⅋R = • , par
+transition-⦂ ⊗L = • , ten
+transition-⦂ ⊗R = • , ten
+transition-⦂ (seq tr x) = {!!}
+transition-⦂ (seqε tr tr₁) = {!!}
+transition-⦂ (seq⊗ tr) = {!!}
+transition-⦂ (seq⅋ tr) = {!!}
+transition-⦂ put = • , put
+transition-⦂ get = • , get
+transition-⦂ (rec tr) = {!!}
+
+⦂good-kinds : ∀{n r k} {A : PreType n r} → A ⦂ k → k ≡ ε ⊎ k ≡ •
+⦂good-kinds skip = inj₁ refl
+⦂good-kinds bot = inj₂ refl
+⦂good-kinds one = inj₂ refl
+⦂good-kinds top = inj₂ refl
+⦂good-kinds zero = inj₂ refl
+⦂good-kinds put = inj₂ refl
+⦂good-kinds get = inj₂ refl
+⦂good-kinds var = inj₁ refl
+⦂good-kinds rav = inj₁ refl
+⦂good-kinds (seqε x y) = ⦂good-kinds y
+⦂good-kinds (seq• x) = ⦂good-kinds x
+⦂good-kinds par = inj₂ refl
+⦂good-kinds ten = inj₂ refl
+⦂good-kinds amp = inj₂ refl
+⦂good-kinds plus = inj₂ refl
+⦂good-kinds (rec x) = ⦂good-kinds x
 
 data _::_ {n r : ℕ} : PreType n r → Kind r → Set where
   skip : skip :: ε
@@ -245,8 +350,7 @@ kind-rec-unfold (rec∗ p) with rec-kind-subst (kinding-just (rec∗ p)) p
 kind-unsubst : ∀{n r s k} (A : PreType n r) {τ : Fin r → PreType n s} {κ : Fin r → Kind s} →
                Kinding τ κ → rec-subst τ A :: k →
                (∃[ k' ] A :: k' × k ≡ kind-subst κ k') ⊎
-               (∃[ x ] A :: ◦ x × k ≡ κ x) ⊎
-               (∃[ x ] A :: ◦ x × ε ≡ κ x)
+               (∃[ x ] A :: ◦ x × ε ≡ κ x)   -- exposed k because of substitution with skip
 kind-unsubst (var x) kind var = inj₁ (ε , var , refl)
 kind-unsubst (rav x) kind rav = inj₁ (_ , rav , refl)
 kind-unsubst skip kind skip = inj₁ (_ , skip , refl)
@@ -255,27 +359,22 @@ kind-unsubst 𝟘 kind zero = inj₁ (_ , zero , refl)
 kind-unsubst ⊥ kind bot = inj₁ (_ , bot , refl)
 kind-unsubst 𝟙 kind one = inj₁ (_ , one , refl)
 kind-unsubst (A ⨟ B) kind (seqε p q) with kind-unsubst A kind p
-... | inj₁ (◦ x , p' , eq) = inj₂ (inj₂ (_ , seq◦ p' , eq))
-... | inj₂ (inj₁ (x , p' , eq)) = inj₂ (inj₂ (_ , seq◦ p' , eq))
-... | inj₂ (inj₂ (x , p' , eq)) = inj₂ (inj₂ (_ , seq◦ p' , eq))
+... | inj₁ (◦ x , p' , eq) = inj₂ (_ , seq◦ p' , eq)
+... | inj₂ (x , p' , eq) = inj₂ (_ , seq◦ p' , eq)
 ... | inj₁ (ε , p' , refl) with kind-unsubst B kind q
 ... | inj₁ (k , q' , eq) = inj₁ (k , seqε p' q' , eq)
-... | inj₂ (inj₁ (x , q' , eq)) = inj₂ (inj₁ (_ , seqε p' q' , eq))
-... | inj₂ (inj₂ (x , q' , eq)) = inj₂ (inj₂ (_ , seqε p' q' , eq))
+... | inj₂ (x , q' , eq) = inj₂ (_ , seqε p' q' , eq)
 kind-unsubst (A ⨟ B) kind (seq• p) with kind-unsubst A kind p
 ... | inj₁ (• , p' , refl) = inj₁ (_ , seq• p' , refl)
 ... | inj₁ (◦ x , p' , eq) = inj₁ (_ , seq◦ p' , eq)
-... | inj₂ (inj₁ (x , p' , eq)) = inj₂ (inj₁ (x , seq◦ p' , eq))
-... | inj₂ (inj₂ (x , p' , eq)) = inj₂ (inj₂ (x , seq◦ p' , eq))
+... | inj₂ (x , p' , eq) = inj₂ (x , seq◦ p' , eq)
 kind-unsubst (A ⨟ B) kind (seq∗ p) with kind-unsubst A kind p
 ... | inj₁ (∗ , p' , refl) = inj₁ (_ , seq∗ p' , refl)
 ... | inj₁ (◦ x , p' , eq) = inj₁ (_ , seq◦ p' , eq)
-... | inj₂ (inj₁ (x , p' , eq)) = inj₁ (◦ x , seq◦ p' , eq)
-... | inj₂ (inj₂ (x , p' , eq)) = inj₂ (inj₂ (x , seq◦ p' , eq))
+... | inj₂ (x , p' , eq) = inj₂ (x , seq◦ p' , eq)
 kind-unsubst (A ⨟ B) kind (seq◦ p) with kind-unsubst A kind p
 ... | inj₁ (◦ x , p' , eq) = inj₁ (_ , seq◦ p' , eq)
-... | inj₂ (inj₁ (x , p' , eq)) = inj₁ (◦ x , seq◦ p' , eq)
-... | inj₂ (inj₂ (x , p' , eq)) = inj₂ (inj₂ (x , seq◦ p' , eq))
+... | inj₂ (x , p' , eq) = inj₂ (x , seq◦ p' , eq)
 kind-unsubst (A & B) kind amp = inj₁ (_ , amp , refl)
 kind-unsubst (A ⊕ B) kind plus = inj₁ (_ , plus , refl)
 kind-unsubst (A ⅋ B) kind par = inj₁ (_ , par , refl)
@@ -287,27 +386,33 @@ kind-unsubst (inv x) kind p with unique-kind p (kind x)
 kind-unsubst (rec A) kind (recε p) with kind-unsubst A (extk kind) p
 ... | inj₁ (ε , p' , refl) = inj₁ (_ , recε p' , refl)
 ... | inj₁ (◦ (suc x) , p' , eq) = inj₁ (_ , rec◦ p' , kind-rename-ε suc eq)
-... | inj₂ (inj₁ (suc x , p' , eq)) = inj₂ (inj₂ (_ , rec◦ p' , kind-rename-ε suc eq))
-... | inj₂ (inj₂ (suc x , p' , eq)) = inj₂ (inj₂ (_ , rec◦ p' , kind-rename-ε suc eq))
+... | inj₂ (suc x , p' , eq) = inj₂ (_ , rec◦ p' , kind-rename-ε suc eq)
 kind-unsubst (rec A) kind (rec• p) with kind-unsubst A (extk kind) p
 ... | inj₁ (• , p' , refl) = inj₁ (_ , rec• p' , refl)
-... | inj₁ (◦ (suc x) , p' , eq) = inj₂ (inj₁ (_ , rec◦ p' , kind-rename-• suc eq))
-... | inj₂ (inj₁ (suc x , p' , eq)) = inj₂ (inj₁ (_ , rec◦ p' , kind-rename-• suc eq))
-... | inj₂ (inj₂ (suc x , p' , eq)) = inj₂ (inj₂ (_ , rec◦ p' , kind-rename-ε suc eq))
+... | inj₁ (◦ (suc x) , p' , eq) = inj₁ (_ , rec◦ p' , kind-rename-• suc eq)
+... | inj₂ (suc x , p' , eq) = inj₂ (_ , rec◦ p' , kind-rename-ε suc eq)
 kind-unsubst (rec A) kind (rec p) with kind-unsubst A (extk kind) p
 ... | inj₁ (◦ x , p' , eq) rewrite kind-exts-zero x eq = inj₁ (_ , rec p' , refl)
-... | inj₂ (inj₁ (x , p' , eq)) rewrite kind-exts-zero x eq = inj₁ (_ , rec p' , refl)
-... | inj₂ (inj₂ (suc x , p' , eq)) = inj₂ (inj₂ (_ , rec◦ p' , kind-rename-ε suc eq))
+... | inj₂ (suc x , p' , eq) = inj₂ (_ , rec◦ p' , kind-rename-ε suc eq)
 kind-unsubst (rec A) kind (rec◦ p) with kind-unsubst A (extk kind) p
 ... | inj₁ (◦ (suc x) , p' , eq) = inj₁ (_ , rec◦ p' , kind-rename-suc eq)
-... | inj₂ (inj₁ (suc x , p' , eq)) = inj₁ (_ , rec◦ p' , kind-rename-suc eq)
-... | inj₂ (inj₂ (suc x , p' , eq)) = inj₂ (inj₂ (_ , rec◦ p' , kind-rename-ε suc eq))
+... | inj₂ (suc x , p' , eq) = inj₂ (_ , rec◦ p' , kind-rename-ε suc eq)
 kind-unsubst (rec A) kind (rec∗ p) with kind-unsubst A (extk kind) p
 ... | inj₁ (∗ , p' , refl) = inj₁ (_ , rec∗ p' , refl)
-... | inj₁ (◦ (suc x) , p' , eq) = inj₂ (inj₁ (_ , rec◦ p' , kind-rename-∗ suc eq))
-... | inj₂ (inj₁ (suc x , p' , eq)) = inj₂ (inj₁ (_ , rec◦ p' , kind-rename-∗ suc eq))
-... | inj₂ (inj₂ (suc x , p' , eq)) = inj₂ (inj₂ (_ , rec◦ p' , kind-rename-ε suc eq))
+... | inj₁ (◦ (suc x) , p' , eq) = inj₁ (_ , rec◦ p' , kind-rename-∗ suc eq)
+... | inj₂ (suc x , p' , eq) = inj₂ (_ , rec◦ p' , kind-rename-ε suc eq)
 
-kind-unfold-rec : ∀{n r k} {A : PreType n (suc r)} → unfold A :: k → rec A :: k
-kind-unfold-rec {A = A} p with kind-unsubst A (kinding-just {!!}) p
+rec-subst-ε : ∀{n r s} {A : PreType n r} {τ : Fin r → PreType n s} → A :: ε → rec-subst τ A ~ A
+rec-subst-ε skip = skip
+rec-subst-ε var = var
+rec-subst-ε rav = rav
+rec-subst-ε (seqε x y) = seq (rec-subst-ε x) (rec-subst-ε y)
+rec-subst-ε (recε x) = rec (rec-subst-ε x)
+
+completeness-ε : ∀{n r} {A B : PreType n r} → A ⊨ ε ⇒ B → A :: ε
+completeness-ε skip = skip
+completeness-ε (seq tr ns) = contradiction ε ns
+completeness-ε (seqε tr tr') = seqε (completeness-ε tr) (completeness-ε tr')
+completeness-ε {A = rec A} (rec tr) with completeness-ε tr
+... | p with kind-unsubst A (kinding-just {!!}) p
 ... | x = {!!}
