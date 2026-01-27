@@ -1,7 +1,6 @@
 {-# OPTIONS --rewriting --guardedness #-}
 module Type.Transitions where
 
-open import Data.Fin using (Fin)
 open import Data.Nat using (ℕ)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)

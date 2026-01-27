@@ -267,11 +267,11 @@ rename-suc-rename ρ (put x) = refl
 rename-suc-rename {k} ρ (inv x) = cong inv (suc+ext∗ k x)
 rename-suc-rename ρ (rec A) = cong rec (rename-suc-rename ρ A)
 
-exts∗ : ∀{n r s} → (k : ℕ) → (Fin r → PreType n s) → Fin (k + r) → PreType n (k + s)
+exts∗ : ∀{n r s} → (k : ℕ) → (Unfolding n r s) → Unfolding n (k + r) (k + s)
 exts∗ zero σ = σ
 exts∗ (suc k) σ = exts (exts∗ k σ)
 
-exts-rename : ∀{k n r s} (x : Fin (k + r)) (σ : Fin r → PreType n s) →
+exts-rename : ∀{k n r s} (x : Fin (k + r)) (σ : Unfolding n r s) →
               exts (exts∗ k σ) (suc+ k x) ≡ rename (suc+ k) (exts∗ k σ x)
 exts-rename {zero} x σ = refl
 exts-rename {suc k} zero σ = refl
@@ -282,7 +282,7 @@ exts-rename {suc k} (suc x) σ = begin
   rename (ext (suc+ k)) (rename suc (exts∗ k σ x)) ∎
   where open Eq.≡-Reasoning
 
-rec-subst-rename : ∀{k n r s} (A : PreType n (k + r)) (σ : Fin r → PreType n s) →
+rec-subst-rename : ∀{k n r s} (A : PreType n (k + r)) (σ : Unfolding n r s) →
                    rec-subst (exts∗ (suc k) σ) (rename (suc+ k) A) ≡
                    rename (suc+ k) (rec-subst (exts∗ k σ) A)
 rec-subst-rename (var x) σ = refl
@@ -302,7 +302,7 @@ rec-subst-rename (put x) σ = refl
 rec-subst-rename (inv x) σ = exts-rename x σ
 rec-subst-rename (rec A) σ = cong rec (rec-subst-rename A σ)
 
-rec-subst-exts : ∀{n r s t} (τ : Fin r → PreType n s) (σ : Fin s → PreType n t) →
+rec-subst-exts : ∀{n r s t} (τ : Unfolding n r s) (σ : Unfolding n s t) →
                  rec-subst (exts σ) ∘ exts τ ≡ exts (rec-subst σ ∘ τ)
 rec-subst-exts τ σ = extensionality aux
   where
@@ -310,7 +310,7 @@ rec-subst-exts τ σ = extensionality aux
     aux zero = refl
     aux (suc x) = rec-subst-rename (τ x) σ
 
-rec-subst-compose : ∀{n r s t} (A : PreType n r) {τ : Fin r → PreType n s} {σ : Fin s → PreType n t} →
+rec-subst-compose : ∀{n r s t} (A : PreType n r) {τ : Unfolding n r s} {σ : Unfolding n s t} →
                     rec-subst σ (rec-subst τ A) ≡ rec-subst (rec-subst σ ∘ τ) A
 rec-subst-compose (var x) = refl
 rec-subst-compose (rav x) = refl

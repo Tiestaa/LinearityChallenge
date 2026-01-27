@@ -102,18 +102,21 @@ dual-rename ρ (put μ) = refl
 dual-rename ρ (inv x) = refl
 dual-rename ρ (rec A) = cong rec (dual-rename (ext ρ) A)
 
-exts : ∀{n r s} → (Fin r → PreType n s) → Fin (suc r) → PreType n (suc s)
+Unfolding : ℕ → ℕ → ℕ → Set
+Unfolding n r s = Fin r → PreType n s
+
+exts : ∀{n r s} → Unfolding n r s → Unfolding n (suc r) (suc s)
 exts σ zero = inv zero
 exts σ (suc k) = rename suc (σ k)
 
-dual-exts : ∀{n r s} (σ : Fin r → PreType n s) → exts (dual ∘ σ) ≡ dual ∘ (exts σ)
+dual-exts : ∀{n r s} (σ : Unfolding n r s) → exts (dual ∘ σ) ≡ dual ∘ (exts σ)
 dual-exts σ = extensionality aux
   where
     aux : ∀ x → exts (dual ∘ σ) x ≡ dual ((exts σ) x)
     aux zero = refl
     aux (suc x) rewrite dual-rename suc (σ x) = refl
 
-rec-subst : ∀{n r s} → (Fin r → PreType n s) → PreType n r → PreType n s
+rec-subst : ∀{n r s} → Unfolding n r s → PreType n r → PreType n s
 rec-subst σ (var x) = var x
 rec-subst σ (rav x) = rav x
 rec-subst σ skip = skip
@@ -131,7 +134,7 @@ rec-subst σ (put μ) = put μ
 rec-subst σ (inv x) = σ x
 rec-subst σ (rec A) = rec (rec-subst (exts σ) A)
 
-dual-rec-subst : ∀{n r s} (σ : Fin r → PreType n s) (A : PreType n r) →
+dual-rec-subst : ∀{n r s} (σ : Unfolding n r s) (A : PreType n r) →
                  dual (rec-subst σ A) ≡ rec-subst (dual ∘ σ) (dual A)
 dual-rec-subst σ (var x) = refl
 dual-rec-subst σ (rav x) = refl
@@ -150,7 +153,7 @@ dual-rec-subst σ (put μ) = refl
 dual-rec-subst σ (inv x) = refl
 dual-rec-subst σ (rec A) rewrite dual-exts σ = cong rec (dual-rec-subst (exts σ) A)
 
-s-just : ∀{n r} → PreType n r → Fin (suc r) → PreType n r
+s-just : ∀{n r} → PreType n r → Unfolding n (suc r) r
 s-just A zero     = A
 s-just A (suc x)  = inv x
 

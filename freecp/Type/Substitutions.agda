@@ -133,18 +133,18 @@ subst-compose σ₁ σ₂ (put μ) = refl
 subst-compose σ₁ σ₂ (inv x) = refl
 subst-compose σ₁ σ₂ (rec A) = cong rec (subst-compose σ₁ σ₂ A)
 
-IdentitySubstitution : ∀{n r s} → ℕ → (Fin r → PreType n s) → Set
+IdentitySubstitution : ∀{n r s} → ℕ → Unfolding n r s → Set
 IdentitySubstitution k τ = ∀{x} → toℕ x < k → τ x ~ inv x
 
-id-zero : ∀{n r s} (τ : Fin r → PreType n s) → IdentitySubstitution 0 τ
+id-zero : ∀{n r s} (τ : Unfolding n r s) → IdentitySubstitution 0 τ
 id-zero τ ()
 
-exts-id : ∀{n r s k} {τ : Fin r → PreType n s} → IdentitySubstitution k τ → IdentitySubstitution (suc k) (exts τ)
+exts-id : ∀{n r s k} {τ : Unfolding n r s} → IdentitySubstitution k τ → IdentitySubstitution (suc k) (exts τ)
 exts-id iτ {zero} x<k = inv refl
 exts-id iτ {suc x} (_≤_.s≤s x<k) = ~rename suc suc (cong suc) (iτ x<k)
 
 rec-subst-~ : ∀{n r s t}
-              {τ : Fin r → PreType n s} → IdentitySubstitution t τ →
+              {τ : Unfolding n r s} → IdentitySubstitution t τ →
               {A : PreType n r} {B : PreType n t} → A ~ B → rec-subst τ A ~ A
 rec-subst-~ iτ skip = skip
 rec-subst-~ iτ bot = bot
@@ -163,7 +163,7 @@ rec-subst-~ iτ (plus eq eq₁) = plus (rec-subst-~ iτ eq) (rec-subst-~ iτ eq�
 rec-subst-~ iτ (inv {x} {y} eq) = iτ (Eq.subst (_< _) (sym eq) (Fin.toℕ<n y))
 rec-subst-~ iτ (rec eq) = rec (rec-subst-~ (exts-id iτ) eq)
 
-rec-subst-≡ : ∀{m n r s} (τ : Fin r → PreType n s) (σ : Substitution m n) →
+rec-subst-≡ : ∀{m n r s} (τ : Unfolding n r s) (σ : Substitution m n) →
               (x : Fin m) → rec-subst τ (σ .at x) ≡ σ .at x
 rec-subst-≡ τ σ x = ~≡ (~trans (rec-subst-~ (id-zero τ) (σ .co x)) (σ .co x))
 
@@ -195,15 +195,15 @@ rename-subst ρ σ (put x) = refl
 rename-subst ρ σ (inv x) = refl
 rename-subst ρ σ (rec A) = cong rec (rename-subst (ext ρ) σ A)
 
-exts-subst : ∀{m n r s} (τ : Fin r → PreType m s)
-             (σ : Substitution m n) → exts (subst σ ∘ τ) ≡ subst σ ∘ exts τ
+exts-subst : ∀{m n r s} (τ : Unfolding m r s) (σ : Substitution m n) →
+             exts (subst σ ∘ τ) ≡ subst σ ∘ exts τ
 exts-subst τ σ = extensionality aux
   where
     aux : ∀ x → exts (subst σ ∘ τ) x ≡ subst σ (exts τ x)
     aux zero = refl
     aux (suc x) = rename-subst suc σ (τ x)
 
-rec-subst-subst : ∀{m n r s} (τ : Fin r → PreType m s) (σ : Substitution m n) →
+rec-subst-subst : ∀{m n r s} (τ : Unfolding m r s) (σ : Substitution m n) →
                   (A : PreType m r) → rec-subst (subst σ ∘ τ) (subst σ A) ≡ subst σ (rec-subst τ A)
 rec-subst-subst τ σ (var x) = rec-subst-≡ (subst σ ∘ τ) σ x
 rec-subst-subst τ σ (rav x) = rec-subst-≡ (subst σ ∘ τ) (Dual σ) x
