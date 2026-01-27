@@ -237,21 +237,15 @@ ext∗ : ∀{r s} → (k : ℕ) → Renaming r s → Renaming (k + r) (k + s)
 ext∗ zero ρ = ρ
 ext∗ (suc k) ρ = ext (ext∗ k ρ)
 
-suc+ : ∀{u} → (k : ℕ) → Renaming (k + u) (suc (k + u))
+suc+ : ∀{r} → (k : ℕ) → Renaming (k + r) (suc (k + r))
 suc+ zero = suc
 suc+ (suc n) = ext (suc+ n)
 
--- suc+ k = ext∗ k suc
-
--- exts : ∀{n r s} → (Fin r → PreType n s) → Fin (suc r) → PreType n (suc s)
--- exts σ zero = inv zero
--- exts σ (suc k) = rename suc (σ k)
-
-suc+ext∗ : ∀{k r s} {ρ : Renaming r s} (x : Fin (k + r)) →
+suc+ext∗ : ∀{r s} {ρ : Renaming r s} (k : ℕ) (x : Fin (k + r)) →
           suc+ k (ext∗ k ρ x) ≡ ext (ext∗ k ρ) (suc+ k x)
-suc+ext∗ {zero} x = refl
-suc+ext∗ {suc k} zero = refl
-suc+ext∗ {suc k} (suc x) = cong suc (suc+ext∗ {k} x)
+suc+ext∗ zero x = refl
+suc+ext∗ (suc k) zero = refl
+suc+ext∗ (suc k) (suc x) = cong suc (suc+ext∗ k x)
 
 rename-suc-rename : ∀{k n r s} (ρ : Renaming r s) (A : PreType n (k + r)) →
                     rename (suc+ k) (rename (ext∗ k ρ) A) ≡
@@ -270,7 +264,7 @@ rename-suc-rename ρ (A ⅋ B) = cong₂ _⅋_ (rename-suc-rename ρ A) (rename-
 rename-suc-rename ρ (A ⊗ B) = cong₂ _⊗_ (rename-suc-rename ρ A) (rename-suc-rename ρ B)
 rename-suc-rename ρ (get x) = refl
 rename-suc-rename ρ (put x) = refl
-rename-suc-rename {k} ρ (inv x) = cong inv (suc+ext∗ {k} x)
+rename-suc-rename {k} ρ (inv x) = cong inv (suc+ext∗ k x)
 rename-suc-rename ρ (rec A) = cong rec (rename-suc-rename ρ A)
 
 exts∗ : ∀{n r s} → (k : ℕ) → (Fin r → PreType n s) → Fin (k + r) → PreType n (k + s)
@@ -281,64 +275,60 @@ exts-rename : ∀{k n r s} (x : Fin (k + r)) (σ : Fin r → PreType n s) →
               exts (exts∗ k σ) (suc+ k x) ≡ rename (suc+ k) (exts∗ k σ x)
 exts-rename {zero} x σ = refl
 exts-rename {suc k} zero σ = refl
-exts-rename {suc k} (suc x) σ with exts-rename {k} x σ
-... | eq = begin
-             rename suc (exts (exts∗ k σ) (suc+ k x)) ≡⟨ cong (rename suc) eq ⟩
-             rename suc (rename (suc+ k) (exts∗ k σ x)) ≡⟨ rename-suc-rename {0} (suc+ k) (exts∗ k σ x) ⟩
-             rename (ext (suc+ k)) (rename suc (exts∗ k σ x)) ∎
+exts-rename {suc k} (suc x) σ = begin
+  rename suc (exts (exts∗ k σ) (suc+ k x)) ≡⟨ cong (rename suc) (exts-rename x σ) ⟩
+  -- CHECK {0} and (suc+ k) IN THE FOLLOWING LINE
+  rename suc (rename (suc+ k) (exts∗ k σ x)) ≡⟨ rename-suc-rename {0} (suc+ k) (exts∗ k σ x) ⟩
+  rename (ext (suc+ k)) (rename suc (exts∗ k σ x)) ∎
   where open Eq.≡-Reasoning
 
-abra : ∀{k n r s} (A : PreType n (k + r)) (σ : Fin r → PreType n s) →
-       rec-subst (exts∗ (suc k) σ) (rename (suc+ k) A) ≡ rename (suc+ k) (rec-subst (exts∗ k σ) A)
-abra (var x) σ = refl
-abra (rav x) σ = refl
-abra skip σ = refl
-abra ⊤ σ = refl
-abra 𝟘 σ = refl
-abra ⊥ σ = refl
-abra 𝟙 σ = refl
-abra {k} (A ⨟ B) σ = cong₂ _⨟_ (abra {k} A σ) (abra {k} B σ)
-abra {k} (A & B) σ = cong₂ _&_ (abra {k} A σ) (abra {k} B σ)
-abra {k} (A ⊕ B) σ = cong₂ _⊕_ (abra {k} A σ) (abra {k} B σ)
-abra {k} (A ⅋ B) σ = cong₂ _⅋_ (abra {k} A σ) (abra {k} B σ)
-abra {k} (A ⊗ B) σ = cong₂ _⊗_ (abra {k} A σ) (abra {k} B σ)
-abra (get x) σ = refl
-abra (put x) σ = refl
-abra {k} (inv x) σ = exts-rename x σ
-abra {k} (rec A) σ = cong rec (abra A σ)
-
-rec-subst-rename : ∀{n r s t} (x : Fin r) (τ : Fin r → PreType n s) (σ : Fin s → PreType n t) →
-                   rec-subst (exts σ) (rename suc (τ x)) ≡
-                   rename suc (rec-subst σ (τ x))
-rec-subst-rename x τ σ = abra {0} (τ x) σ
+rec-subst-rename : ∀{k n r s} (A : PreType n (k + r)) (σ : Fin r → PreType n s) →
+                   rec-subst (exts∗ (suc k) σ) (rename (suc+ k) A) ≡
+                   rename (suc+ k) (rec-subst (exts∗ k σ) A)
+rec-subst-rename (var x) σ = refl
+rec-subst-rename (rav x) σ = refl
+rec-subst-rename skip σ = refl
+rec-subst-rename ⊤ σ = refl
+rec-subst-rename 𝟘 σ = refl
+rec-subst-rename ⊥ σ = refl
+rec-subst-rename 𝟙 σ = refl
+rec-subst-rename (A ⨟ B) σ = cong₂ _⨟_ (rec-subst-rename A σ) (rec-subst-rename B σ)
+rec-subst-rename (A & B) σ = cong₂ _&_ (rec-subst-rename A σ) (rec-subst-rename B σ)
+rec-subst-rename (A ⊕ B) σ = cong₂ _⊕_ (rec-subst-rename A σ) (rec-subst-rename B σ)
+rec-subst-rename (A ⅋ B) σ = cong₂ _⅋_ (rec-subst-rename A σ) (rec-subst-rename B σ)
+rec-subst-rename (A ⊗ B) σ = cong₂ _⊗_ (rec-subst-rename A σ) (rec-subst-rename B σ)
+rec-subst-rename (get x) σ = refl
+rec-subst-rename (put x) σ = refl
+rec-subst-rename (inv x) σ = exts-rename x σ
+rec-subst-rename (rec A) σ = cong rec (rec-subst-rename A σ)
 
 rec-subst-exts : ∀{n r s t} (τ : Fin r → PreType n s) (σ : Fin s → PreType n t) →
                  rec-subst (exts σ) ∘ exts τ ≡ exts (rec-subst σ ∘ τ)
-rec-subst-exts {n} {r} τ σ = extensionality aux
+rec-subst-exts τ σ = extensionality aux
   where
-    aux : (x : Fin (suc r)) → rec-subst (exts σ) (exts τ x) ≡ exts (rec-subst σ ∘ τ) x
+    aux : ∀ x → rec-subst (exts σ) (exts τ x) ≡ exts (rec-subst σ ∘ τ) x
     aux zero = refl
-    aux (suc x) = rec-subst-rename x τ σ
+    aux (suc x) = rec-subst-rename (τ x) σ
 
-rec-subst-compose : ∀{n r s t} (A : PreType n r) (τ : Fin r → PreType n s) (σ : Fin s → PreType n t) →
+rec-subst-compose : ∀{n r s t} (A : PreType n r) {τ : Fin r → PreType n s} {σ : Fin s → PreType n t} →
                     rec-subst σ (rec-subst τ A) ≡ rec-subst (rec-subst σ ∘ τ) A
-rec-subst-compose (var x) τ σ = refl
-rec-subst-compose (rav x) τ σ = refl
-rec-subst-compose skip τ σ = refl
-rec-subst-compose ⊤ τ σ = refl
-rec-subst-compose 𝟘 τ σ = refl
-rec-subst-compose ⊥ τ σ = refl
-rec-subst-compose 𝟙 τ σ = refl
-rec-subst-compose (A ⨟ B) τ σ = cong₂ _⨟_ (rec-subst-compose A τ σ) (rec-subst-compose B τ σ)
-rec-subst-compose (A & B) τ σ = cong₂ _&_ (rec-subst-compose A τ σ) (rec-subst-compose B τ σ)
-rec-subst-compose (A ⊕ B) τ σ = cong₂ _⊕_ (rec-subst-compose A τ σ) (rec-subst-compose B τ σ)
-rec-subst-compose (A ⅋ B) τ σ = cong₂ _⅋_ (rec-subst-compose A τ σ) (rec-subst-compose B τ σ)
-rec-subst-compose (A ⊗ B) τ σ = cong₂ _⊗_ (rec-subst-compose A τ σ) (rec-subst-compose B τ σ)
-rec-subst-compose (get x) τ σ = refl
-rec-subst-compose (put x) τ σ = refl
-rec-subst-compose (inv x) τ σ = refl
-rec-subst-compose (rec A) τ σ = begin
-  rec (rec-subst (exts σ) (rec-subst (exts τ) A)) ≡⟨ cong rec (rec-subst-compose A (exts τ) (exts σ)) ⟩
+rec-subst-compose (var x) = refl
+rec-subst-compose (rav x) = refl
+rec-subst-compose skip = refl
+rec-subst-compose ⊤ = refl
+rec-subst-compose 𝟘 = refl
+rec-subst-compose ⊥ = refl
+rec-subst-compose 𝟙 = refl
+rec-subst-compose (A ⨟ B) = cong₂ _⨟_ (rec-subst-compose A) (rec-subst-compose B)
+rec-subst-compose (A & B) = cong₂ _&_ (rec-subst-compose A) (rec-subst-compose B)
+rec-subst-compose (A ⊕ B) = cong₂ _⊕_ (rec-subst-compose A) (rec-subst-compose B)
+rec-subst-compose (A ⅋ B) = cong₂ _⅋_ (rec-subst-compose A) (rec-subst-compose B)
+rec-subst-compose (A ⊗ B) = cong₂ _⊗_ (rec-subst-compose A) (rec-subst-compose B)
+rec-subst-compose (get x) = refl
+rec-subst-compose (put x) = refl
+rec-subst-compose (inv x) = refl
+rec-subst-compose (rec A) {τ} {σ} = begin
+  rec (rec-subst (exts σ) (rec-subst (exts τ) A)) ≡⟨ cong rec (rec-subst-compose A) ⟩
   rec (rec-subst (rec-subst (exts σ) ∘ exts τ) A) ≡⟨ cong (λ x → rec (rec-subst x A)) (rec-subst-exts τ σ) ⟩
   rec (rec-subst (exts (rec-subst σ ∘ τ)) A) ∎
   where open Eq.≡-Reasoning
