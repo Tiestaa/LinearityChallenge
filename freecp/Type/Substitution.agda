@@ -1,5 +1,5 @@
 {-# OPTIONS --rewriting --guardedness #-}
-module Type.Substitutions where
+module Type.Substitution where
 
 open import Function using (_∘_)
 open import Data.Nat using (ℕ; zero; suc; _≤_; _<_)

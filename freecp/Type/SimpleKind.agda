@@ -3,9 +3,9 @@ module Type.SimpleKind where
 
 open import Axioms
 open import Function using (_∘_)
-open import Data.Nat using (ℕ; suc; zero; _≤_; s≤s; _⊔_; _+_)
+open import Data.Nat using (ℕ; suc; zero; _≤_; _<_; s≤s; _⊔_; _+_)
 open import Data.Nat.Properties as Nat
-open import Data.Fin using (Fin; suc; zero)
+open import Data.Fin using (Fin; suc; zero; toℕ)
 open import Data.Fin.Properties as Fin
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -247,6 +247,12 @@ suc+ext∗ zero x = refl
 suc+ext∗ (suc k) zero = refl
 suc+ext∗ (suc k) (suc x) = cong suc (suc+ext∗ k x)
 
+-- ext∗-suc-ext∗ : ∀{r s} {ρ : Renaming r s} (k : ℕ) (x : Fin (k + r)) →
+--                 ext∗ k suc (ext∗ k ρ x) ≡ ext (ext∗ k ρ) (ext∗ k suc x)
+-- ext∗-suc-ext∗ = ?
+
+-- ext∗ k suc (ext∗ k ρ x) ≡ ext (ext∗ k ρ) (ext∗ k suc x)
+
 rename-suc-rename : ∀{k n r s} (ρ : Renaming r s) (A : PreType n (k + r)) →
                     rename (suc+ k) (rename (ext∗ k ρ) A) ≡
                     rename (ext (ext∗ k ρ)) (rename (suc+ k) A)
@@ -276,11 +282,12 @@ exts-rename : ∀{k n r s} (x : Fin (k + r)) (σ : Unfolding n r s) →
 exts-rename {zero} x σ = refl
 exts-rename {suc k} zero σ = refl
 exts-rename {suc k} (suc x) σ = begin
-  rename suc (exts (exts∗ k σ) (suc+ k x)) ≡⟨ cong (rename suc) (exts-rename x σ) ⟩
-  -- CHECK {0} and (suc+ k) IN THE FOLLOWING LINE
-  rename suc (rename (suc+ k) (exts∗ k σ x)) ≡⟨ rename-suc-rename {0} (suc+ k) (exts∗ k σ x) ⟩
-  rename (ext (suc+ k)) (rename suc (exts∗ k σ x)) ∎
-  where open Eq.≡-Reasoning
+  rename suc (exts (exts∗ k σ) (suc+ k x))
+    ≡⟨ cong (rename suc) (exts-rename x σ) ⟩
+  rename suc (rename (suc+ k) (exts∗ k σ x))
+    ≡⟨ rename-suc-rename {0} (suc+ k) (exts∗ k σ x) ⟩
+  rename (ext (suc+ k)) (rename suc (exts∗ k σ x))
+  ∎ where open Eq.≡-Reasoning
 
 rec-subst-rename : ∀{k n r s} (A : PreType n (k + r)) (σ : Unfolding n r s) →
                    rec-subst (exts∗ (suc k) σ) (rename (suc+ k) A) ≡
@@ -310,6 +317,14 @@ rec-subst-exts τ σ = extensionality aux
     aux zero = refl
     aux (suc x) = rec-subst-rename (τ x) σ
 
+{-# REWRITE +-suc #-}
+
+ext∗-suc-ext∗ : ∀{r s} {ρ : Renaming r s} (k : ℕ) (x : Fin (k + r)) →
+                ext∗ {s} k suc (ext∗ k ρ x) ≡ ext (ext∗ k ρ) (ext∗ {r} k suc x)
+ext∗-suc-ext∗ zero x = refl
+ext∗-suc-ext∗ (suc k) zero = refl
+ext∗-suc-ext∗ (suc k) (suc x) = cong suc (ext∗-suc-ext∗ k x)
+
 rec-subst-compose : ∀{n r s t} (A : PreType n r) {τ : Unfolding n r s} {σ : Unfolding n s t} →
                     rec-subst σ (rec-subst τ A) ≡ rec-subst (rec-subst σ ∘ τ) A
 rec-subst-compose (var x) = refl
@@ -332,3 +347,234 @@ rec-subst-compose (rec A) {τ} {σ} = begin
   rec (rec-subst (rec-subst (exts σ) ∘ exts τ) A) ≡⟨ cong (λ x → rec (rec-subst x A)) (rec-subst-exts τ σ) ⟩
   rec (rec-subst (exts (rec-subst σ ∘ τ)) A) ∎
   where open Eq.≡-Reasoning
+
+exts-exts∗ : ∀{n r s} (k : ℕ) (σ : Unfolding n r s) → exts (exts∗ k σ) ≡ exts∗ k (exts σ)
+exts-exts∗ zero σ = refl
+exts-exts∗ (suc k) σ = cong exts (exts-exts∗ k σ)
+
+rec-subst-exts∗ : ∀{k n r s t} (τ : Unfolding n r s) (σ : Unfolding n s t) →
+                  (x : Fin (k + r)) → rec-subst (exts∗ k σ) (exts∗ k τ x) ≡ exts∗ k (rec-subst σ ∘ τ) x
+rec-subst-exts∗ {zero} τ σ x = refl
+rec-subst-exts∗ {suc k} τ σ x = begin
+  rec-subst (exts (exts∗ k σ)) (exts (exts∗ k τ) x)
+    ≡⟨ cong₂ (λ u v → rec-subst u (v x)) (exts-exts∗ k σ) (exts-exts∗ k τ) ⟩
+  rec-subst (exts∗ k (exts σ)) (exts∗ k (exts τ) x)
+    ≡⟨ rec-subst-exts∗ (exts τ) (exts σ) x ⟩
+  exts∗ k (rec-subst (exts σ) ∘ (exts τ)) x
+    ≡⟨ cong (λ u → exts∗ k u x) (rec-subst-exts τ σ) ⟩
+  exts∗ k (exts (rec-subst σ ∘ τ)) x
+    ≡⟨ cong (λ u → u x) (sym (exts-exts∗ k (rec-subst σ ∘ τ))) ⟩
+  exts (exts∗ k (rec-subst σ ∘ τ)) x ∎
+  where open Eq.≡-Reasoning
+
+easy : ∀{k n r s t} (A : PreType n (k + r)) (τ : Unfolding n r s) (σ : Unfolding n s t) →
+       rec-subst (exts∗ k σ) (rec-subst (exts∗ k τ) A) ≡
+       rec-subst (exts∗ k (rec-subst σ ∘ τ)) A
+easy (var x) τ σ = refl
+easy (rav x) τ σ = refl
+easy skip τ σ = refl
+easy ⊤ τ σ = refl
+easy 𝟘 τ σ = refl
+easy ⊥ τ σ = refl
+easy 𝟙 τ σ = refl
+easy (A ⨟ B) τ σ = cong₂ _⨟_ (easy A τ σ) (easy B τ σ)
+easy (A & B) τ σ = cong₂ _&_ (easy A τ σ) (easy B τ σ)
+easy (A ⊕ B) τ σ = cong₂ _⊕_ (easy A τ σ) (easy B τ σ)
+easy (A ⅋ B) τ σ = cong₂ _⅋_ (easy A τ σ) (easy B τ σ)
+easy (A ⊗ B) τ σ = cong₂ _⊗_ (easy A τ σ) (easy B τ σ)
+easy (get x) τ σ = refl
+easy (put x) τ σ = refl
+easy (inv x) τ σ = rec-subst-exts∗ τ σ x
+easy (rec A) τ σ = cong rec (easy A τ σ)
+
+IdentityFrom : ∀{n r} → ℕ → Unfolding n (suc r) r → Set
+IdentityFrom {_} {r} k σ = (x : Fin (k + r)) → inv x ≡ exts∗ k σ (suc+ {r} k x)
+
+identity-from-suc : ∀{k n r} (σ : Unfolding n (suc r) r) →
+                    IdentityFrom k σ → IdentityFrom (suc k) σ
+identity-from-suc σ iσ zero = refl
+identity-from-suc σ iσ (suc x) rewrite sym (iσ x) = refl
+
+identity-from-s-just : ∀{n r} (A : PreType n r) → IdentityFrom 0 (s-just A)
+identity-from-s-just _ _ = refl
+
+useless-rec-subst : ∀{k n r} (σ : Unfolding n (suc r) r) (A : PreType n (k + r)) →
+                    IdentityFrom k σ →
+                    A ≡ rec-subst (exts∗ k σ) (rename (suc+ {r} k) A)
+useless-rec-subst σ (var x) iσ = refl
+useless-rec-subst σ (rav x) iσ = refl
+useless-rec-subst σ skip iσ = refl
+useless-rec-subst σ ⊤ iσ = refl
+useless-rec-subst σ 𝟘 iσ = refl
+useless-rec-subst σ ⊥ iσ = refl
+useless-rec-subst σ 𝟙 iσ = refl
+useless-rec-subst σ (A ⨟ B) iσ = cong₂ _⨟_ (useless-rec-subst σ A iσ) (useless-rec-subst σ B iσ)
+useless-rec-subst σ (A & B) iσ = cong₂ _&_ (useless-rec-subst σ A iσ) (useless-rec-subst σ B iσ)
+useless-rec-subst σ (A ⊕ B) iσ = cong₂ _⊕_ (useless-rec-subst σ A iσ) (useless-rec-subst σ B iσ)
+useless-rec-subst σ (A ⅋ B) iσ = cong₂ _⅋_ (useless-rec-subst σ A iσ) (useless-rec-subst σ B iσ)
+useless-rec-subst σ (A ⊗ B) iσ = cong₂ _⊗_ (useless-rec-subst σ A iσ) (useless-rec-subst σ B iσ)
+useless-rec-subst σ (get x) iσ = refl
+useless-rec-subst σ (put x) iσ = refl
+useless-rec-subst σ (inv x) iσ = iσ x
+useless-rec-subst σ (rec A) iσ = cong rec (useless-rec-subst σ A (identity-from-suc σ iσ))
+
+rec-subst-s-just : ∀{n r s} (σ : Unfolding n r s) →
+                   (A : PreType n (suc r)) (x : Fin (suc r)) →
+                   rec-subst σ (s-just (rec A) x) ≡
+                   rec-subst (s-just (rec (rec-subst (exts σ) A))) (exts σ x)
+rec-subst-s-just σ A zero = refl
+rec-subst-s-just σ A (suc x) =
+  useless-rec-subst
+    ((s-just (rec (rec-subst (exts σ) A))))
+    (σ x)
+    (identity-from-s-just (rec (rec-subst (exts σ) A)))
+
+-- rename-suc-rename : ∀{k n r s} (ρ : Renaming r s) (A : PreType n (k + r)) →
+--                     rename (suc+ k) (rename (ext∗ k ρ) A) ≡
+--                     rename (ext (ext∗ k ρ)) (rename (suc+ k) A)
+
+-- rename (ext suc) (rename (ext ρ) A) ≡
+-- rename (ext (ext ρ)) (rename (ext suc) A)
+
+rename-suc-rename' : ∀{k n r s} (ρ : Renaming r s) (A : PreType n (k + r)) →
+                     rename (ext∗ {s} k suc) (rename (ext∗ k ρ) A) ≡
+                     rename (ext (ext∗ {r} k ρ)) (rename (ext∗ {r} k suc) A)
+rename-suc-rename' ρ (var x) = refl
+rename-suc-rename' ρ (rav x) = refl
+rename-suc-rename' ρ skip = refl
+rename-suc-rename' ρ ⊤ = refl
+rename-suc-rename' ρ 𝟘 = refl
+rename-suc-rename' ρ ⊥ = refl
+rename-suc-rename' ρ 𝟙 = refl
+rename-suc-rename' ρ (A ⨟ B) = cong₂ _⨟_ (rename-suc-rename' ρ A) (rename-suc-rename' ρ B)
+rename-suc-rename' ρ (A & B) = cong₂ _&_ (rename-suc-rename' ρ A) (rename-suc-rename' ρ B)
+rename-suc-rename' ρ (A ⊕ B) = cong₂ _⊕_ (rename-suc-rename' ρ A) (rename-suc-rename' ρ B)
+rename-suc-rename' ρ (A ⅋ B) = cong₂ _⅋_ (rename-suc-rename' ρ A) (rename-suc-rename' ρ B)
+rename-suc-rename' ρ (A ⊗ B) = cong₂ _⊗_ (rename-suc-rename' ρ A) (rename-suc-rename' ρ B)
+rename-suc-rename' ρ (get x) = refl
+rename-suc-rename' ρ (put x) = refl
+rename-suc-rename' {k} ρ (inv x) = cong inv (ext∗-suc-ext∗ k x)
+rename-suc-rename' ρ (rec A) = cong rec (rename-suc-rename' ρ A)
+
+exts-suc : ∀{k n r s} (σ : Unfolding n r s) (x : Fin (k + r)) →
+           exts (exts∗ k σ) (suc+ {r} k x) ≡ rename (suc+ {s} k) (exts∗ k σ x)
+exts-suc {zero} σ x = refl
+exts-suc {suc k} σ zero = refl
+exts-suc {suc k} {n} {r} {s} σ (suc x) = begin
+    exts (exts∗ (suc k) σ) (suc+ {r} (suc k) (suc x))
+      ≡⟨⟩
+    rename suc (exts (exts∗ k σ) (suc+ {r} k x))
+      ≡⟨ cong (rename suc) (exts-suc σ x) ⟩
+    rename suc (rename (suc+ {s} k) (exts∗ k σ x))
+      ≡⟨ rename-suc-rename' {0} (suc+ {s} k) (exts∗ k σ x) ⟩
+    rename (suc+ (suc k)) (exts∗ (suc k) σ (suc x)) ∎
+  where open Eq.≡-Reasoning
+
+rec-subst-exts-suc : ∀{k n r s} (σ : Unfolding n r s) (A : PreType n (k + r)) →
+                     rec-subst (exts (exts∗ k σ)) (rename (suc+ {r} k) A) ≡
+                     rename (suc+ {s} k) (rec-subst (exts∗ k σ) A)
+rec-subst-exts-suc σ (var x) = refl
+rec-subst-exts-suc σ (rav x) = refl
+rec-subst-exts-suc σ skip = refl
+rec-subst-exts-suc σ ⊤ = refl
+rec-subst-exts-suc σ 𝟘 = refl
+rec-subst-exts-suc σ ⊥ = refl
+rec-subst-exts-suc σ 𝟙 = refl
+rec-subst-exts-suc σ (A ⨟ B) = cong₂ _⨟_ (rec-subst-exts-suc σ A) (rec-subst-exts-suc σ B)
+rec-subst-exts-suc σ (A & B) = cong₂ _&_ (rec-subst-exts-suc σ A) (rec-subst-exts-suc σ B)
+rec-subst-exts-suc σ (A ⊕ B) = cong₂ _⊕_ (rec-subst-exts-suc σ A) (rec-subst-exts-suc σ B)
+rec-subst-exts-suc σ (A ⅋ B) = cong₂ _⅋_ (rec-subst-exts-suc σ A) (rec-subst-exts-suc σ B)
+rec-subst-exts-suc σ (A ⊗ B) = cong₂ _⊗_ (rec-subst-exts-suc σ A) (rec-subst-exts-suc σ B)
+rec-subst-exts-suc σ (get x) = refl
+rec-subst-exts-suc σ (put x) = refl
+rec-subst-exts-suc σ (inv x) = exts-suc σ x
+rec-subst-exts-suc σ (rec A) = cong rec (rec-subst-exts-suc σ A)
+
+boh : ∀{n r s t} (σ : Unfolding n s t) (τ : Unfolding n (suc r) s) (x : Fin (suc r)) →
+      rec-subst (exts σ) (exts τ (suc x)) ≡ rename suc (rec-subst σ (τ x))
+boh σ τ x = rec-subst-exts-suc σ (τ x)
+
+hard-lemma : ∀{k n r s} (σ : Unfolding n r s) →
+             (A : PreType n (suc r)) (x : Fin (k + suc r)) →
+             rec-subst (exts∗ k σ) (exts∗ k (s-just (rec A)) x) ≡
+             rec-subst (exts∗ k (s-just (rec (rec-subst (exts σ) A)))) (exts (exts∗ k σ) x)
+hard-lemma {zero} σ A x = rec-subst-s-just σ A x
+hard-lemma {suc k} σ A zero = refl
+hard-lemma {suc k} {_} {r} σ A (suc x) =
+  let res = boh (exts∗ k (s-just (rec (rec-subst (exts σ) A)))) (exts (exts∗ k σ)) in
+  begin
+    rec-subst (exts∗ (suc k) σ) (exts∗ (suc k) (s-just (rec A)) (suc x))
+      ≡⟨⟩
+    rec-subst (exts (exts∗ k σ)) (exts (exts∗ k (s-just (rec A))) (suc x))
+      ≡⟨ boh (exts∗ k σ) (exts∗ k (s-just (rec A))) x ⟩
+    rename suc (rec-subst (exts∗ k σ) (exts∗ k (s-just (rec A)) x))
+      ≡⟨ cong (rename suc) (hard-lemma σ A x) ⟩
+    rename suc (rec-subst (exts∗ k (s-just (rec (rec-subst (exts σ) A)))) (exts (exts∗ k σ) x))
+      ≡⟨ sym (boh (exts∗ k (s-just (rec (rec-subst (exts σ) A)))) (exts (exts∗ k σ)) x) ⟩
+    rec-subst (exts (exts∗ k (s-just (rec (rec-subst (exts σ) A))))) (exts (exts (exts∗ k σ)) (suc x))
+      ≡⟨⟩
+    rec-subst (exts∗ (suc k) (s-just (rec (rec-subst (exts σ) A)))) (exts (exts∗ (suc k) σ) (suc x)) ∎
+  where open Eq.≡-Reasoning
+
+hard : ∀{k n r s} (σ : Unfolding n r s) →
+       (A : PreType n (suc r)) (B : PreType n (suc k + r)) →
+       rec-subst (exts∗ k σ) (rec-subst (exts∗ k (s-just (rec A))) B) ≡
+       rec-subst (exts∗ k (s-just (rec (rec-subst (exts σ) A)))) (rec-subst (exts∗ (suc k) σ) B)
+hard σ C (var x) = refl
+hard σ C (rav x) = refl
+hard σ C skip = refl
+hard σ C ⊤ = refl
+hard σ C 𝟘 = refl
+hard σ C ⊥ = refl
+hard σ C 𝟙 = refl
+hard σ C (A ⨟ B) = cong₂ _⨟_ (hard σ C A) (hard σ C B)
+hard σ C (A & B) = cong₂ _&_ (hard σ C A) (hard σ C B)
+hard σ C (A ⊕ B) = cong₂ _⊕_ (hard σ C A) (hard σ C B)
+hard σ C (A ⅋ B) = cong₂ _⅋_ (hard σ C A) (hard σ C B)
+hard σ C (A ⊗ B) = cong₂ _⊗_ (hard σ C A) (hard σ C B)
+hard σ C (get x) = refl
+hard σ C (put x) = refl
+hard σ C (inv x) = hard-lemma σ C x
+hard σ C (rec B) = cong rec (hard σ C B)
+
+rec-subst-unfold : ∀{n r s} (σ : Unfolding n r s) (A : PreType n (suc r)) →
+                   rec-subst σ (unfold A) ≡ unfold (rec-subst (exts σ) A)
+rec-subst-unfold σ A = hard σ A A
+
+transitionε-rec-subst : ∀{n r s} (σ : Unfolding n r s) {A : PreType n r} →
+                       A ⊨ ε ⇒ skip → rec-subst σ A ⊨ ε ⇒ skip
+transitionε-rec-subst σ skip = skip
+transitionε-rec-subst σ (seqε sk sk') = seqε (transitionε-rec-subst σ sk) (transitionε-rec-subst σ sk')
+transitionε-rec-subst σ {rec A} (rec tr) with transitionε-rec-subst σ tr
+... | tr' rewrite rec-subst-unfold σ A = rec tr'
+
+data Empty {n r} : PreType n r → Set where
+  skip : Empty skip
+  seq  : ∀{A B} → Empty A → Empty B → Empty (A ⨟ B)
+  rec  : ∀{A} → Empty A → Empty (rec A)
+
+Empty-dec : ∀{n r} (A : PreType n r) → Empty A ⊎ ¬ Empty A
+Empty-dec (var x) = inj₂ λ ()
+Empty-dec (rav x) = inj₂ λ ()
+Empty-dec skip = inj₁ skip
+Empty-dec ⊤ = inj₂ λ ()
+Empty-dec 𝟘 = {!!}
+Empty-dec ⊥ = {!!}
+Empty-dec 𝟙 = {!!}
+Empty-dec (A ⨟ A₁) = {!!}
+Empty-dec (A & A₁) = {!!}
+Empty-dec (A ⊕ A₁) = {!!}
+Empty-dec (A ⅋ A₁) = {!!}
+Empty-dec (A ⊗ A₁) = {!!}
+Empty-dec (get x) = {!!}
+Empty-dec (put x) = inj₂ {!!}
+Empty-dec (inv x) = inj₂ λ ()
+Empty-dec (rec A) with Empty-dec A
+... | inj₁ x = inj₁ (rec x)
+... | inj₂ y = inj₂ λ { (rec x) → y x }
+
+empty-transition : ∀{n r} {A : PreType n r} → Empty A → A ⊨ ε ⇒ skip
+empty-transition skip = skip
+empty-transition (seq x y) = seqε (empty-transition x) (empty-transition y)
+empty-transition (rec x) with empty-transition x
+... | tr = rec {!!}

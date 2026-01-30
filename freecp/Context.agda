@@ -8,7 +8,7 @@ open import Relation.Unary
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂)
 
 open import Type
-open import Type.Substitutions
+open import Type.Substitution
 open import Type.Equivalence
 
 Context : ℕ → Set

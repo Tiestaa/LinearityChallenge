@@ -11,7 +11,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
 
 open import Type
 open import Type.Equivalence
-open import Type.Substitutions
+open import Type.Substitution
 open import Context
 open import Permutations
 

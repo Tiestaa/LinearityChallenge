@@ -4,7 +4,8 @@ import Axioms
 import Type
 import Type.Transitions
 import Type.Equality
-import Type.Substitutions
+import Type.Unfolding
+import Type.Substitution
 import Type.Equivalence
 import Type.HeadNormalForm
 import Context

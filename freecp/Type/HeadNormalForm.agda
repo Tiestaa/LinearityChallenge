@@ -11,7 +11,7 @@ open import Axioms
 open import Type
 open import Type.Transitions
 open import Type.Equivalence
-open import Type.Substitutions
+open import Type.Substitution
 
 data Visible {n} (A : Type n) : Set where
   visible : ∀{m ℓ B} (σ : Substitution n m) → subst σ A ⊨ ℓ ⇒ B → Visible A

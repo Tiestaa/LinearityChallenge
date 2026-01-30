@@ -5,7 +5,7 @@ open import Data.List.Base using (List; []; _∷_; [_]; _++_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
 open import Type
-open import Type.Substitutions
+open import Type.Substitution
 open import Context
 
 data _↭_ {n} : Context n → Context n → Set where
