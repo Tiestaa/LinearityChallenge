@@ -1,24 +1,17 @@
 {-# OPTIONS --rewriting --guardedness #-}
-module Type.SimpleKind where
+module Type.Kind where
 
-open import Axioms
-open import Function using (_∘_)
-open import Data.Nat using (ℕ; suc; zero; _≤_; _<_; s≤s; _⊔_; _+_)
-open import Data.Nat.Properties as Nat
-open import Data.Fin using (Fin; suc; zero; toℕ)
-open import Data.Fin.Properties as Fin
-open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
+open import Data.Nat using (ℕ; suc; zero; _+_)
+open import Data.Fin using (Fin; suc; zero)
+open import Data.Product using (_×_; _,_; ∃; ∃-syntax; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Data.List.Base using (List; []; _∷_; [_])
-open import Relation.Nullary using (¬_; contradiction; contraposition)
-open import Relation.Unary using (Decidable)
-open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl; sym; cong; cong₂)
+open import Relation.Nullary using (¬_; contradiction)
+open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl; cong; cong₂)
 
 open import Type
-open import Type.Equality
 open import Type.Transitions
-open import Type.Equivalence
 open import Type.Unfolding
+open import Type.Substitution
 
 transition-rec-subst : ∀{n r s ℓ} (σ : Unfolding n r s) {A B : PreType n r} →
                        A ⊨ ℓ ⇒ B → rec-subst σ A ⊨ ℓ ⇒ rec-subst σ B
@@ -48,251 +41,328 @@ transition-unfold : ∀{n r ℓ} {A B : PreType n (suc r)} →
                     A ⊨ ℓ ⇒ B → unfold A ⊨ ℓ ⇒ rec-subst (s-just (rec A)) B
 transition-unfold x = transition-rec-subst (s-just (rec _)) x
 
-data Skip {n r} : PreType n r → Set where
-  skip : Skip skip
-  var  : ∀{x} → Skip (var x)
-  rav  : ∀{x} → Skip (rav x)
-  seq  : ∀{A B} → Skip A → Skip B → Skip (A ⨟ B)
-  rec  : ∀{A} → Skip A → Skip (rec A)
+data Kind (n : ℕ) : Set where
+  ε • ∗ : Kind n
+  var   : Fin n → Kind n → Kind n
 
-data Action {n r} : PreType n r → Set where
-  bot  : Action ⊥
-  one  : Action 𝟙
-  top  : Action ⊤
-  zero : Action 𝟘
-  put  : ∀{μ} → Action (put μ)
-  get  : ∀{μ} → Action (get μ)
-  seq  : ∀{A B} → Action A → Action (A ⨟ B)
-  seqε : ∀{A B} → Skip A → Action B → Action (A ⨟ B)
-  par  : ∀{A B} → Action (A ⅋ B)
-  ten  : ∀{A B} → Action (A ⊗ B)
-  amp  : ∀{A B} → Action (A & B)
-  plus : ∀{A B} → Action (A ⊕ B)
-  rec  : ∀{A} → Action A → Action (rec A)
+data Ground {n : ℕ} : Kind n → Set where
+  ε : Ground ε
+  • : Ground •
+  ∗ : Ground ∗
 
-Visible : ∀{n r} → PreType n r → Set
-Visible A = Skip A ⊎ Action A
+_>>_ : ∀{n} → Kind n → Kind n → Kind n
+ε >> k' = k'
+• >> k' = •
+∗ >> k' = ∗
+var x k >> k' = var x (k >> k')
 
-skip-not-action : ∀{n r} {A : PreType n r} → Skip A → ¬ Action A
-skip-not-action (seq sk sk') (seq act) = skip-not-action sk act
-skip-not-action (seq sk sk') (seqε x act) = skip-not-action sk' act
-skip-not-action (rec sk) (rec act) = skip-not-action sk act
+>>-assoc : ∀{n} (k k' k'' : Kind n) → (k >> k') >> k'' ≡ k >> (k' >> k'')
+>>-assoc ε k' k'' = refl
+>>-assoc • k' k'' = refl
+>>-assoc ∗ k' k'' = refl
+>>-assoc (var x k) k' k'' = cong (var x) (>>-assoc k k' k'')
 
-skip-after-rec-subst : ∀{n r s} {A : PreType n r} {σ : Unfolding n r s} → Skip A → Skip (rec-subst σ A)
-skip-after-rec-subst skip = skip
-skip-after-rec-subst var = var
-skip-after-rec-subst rav = rav
-skip-after-rec-subst (seq sk sk') = seq (skip-after-rec-subst sk) (skip-after-rec-subst sk')
-skip-after-rec-subst (rec sk) = rec (skip-after-rec-subst sk)
+>>-idempotent : (k : Kind 0) → k >> k ≡ k
+>>-idempotent ε = refl
+>>-idempotent • = refl
+>>-idempotent ∗ = refl
 
--- DECIDABILITY
+>>ε-l : ∀{n} {k k' : Kind n} → k >> k' ≡ ε → k ≡ ε
+>>ε-l {_} {ε} {ε} refl = refl
 
-Skip-dec : ∀{n r} (A : PreType n r) → Skip A ⊎ ¬ Skip A
-Skip-dec (var x) = inj₁ var
-Skip-dec (rav x) = inj₁ rav
-Skip-dec skip = inj₁ skip
-Skip-dec ⊤ = inj₂ λ ()
-Skip-dec 𝟘 = inj₂ λ ()
-Skip-dec ⊥ = inj₂ λ ()
-Skip-dec 𝟙 = inj₂ λ ()
-Skip-dec (A ⨟ B) with Skip-dec A | Skip-dec B
-... | inj₁ x | inj₁ y = inj₁ (seq x y)
-... | inj₁ x | inj₂ ny = inj₂ λ { (seq _ y) → ny y }
-... | inj₂ nx | inj₁ _ = inj₂ λ { (seq x _) → nx x }
-... | inj₂ nx | inj₂ _ = inj₂ λ { (seq x _) → nx x }
-Skip-dec (A & B) = inj₂ λ ()
-Skip-dec (A ⊕ B) = inj₂ λ ()
-Skip-dec (A ⅋ B) = inj₂ λ ()
-Skip-dec (A ⊗ B) = inj₂ λ ()
-Skip-dec (get x) = inj₂ λ ()
-Skip-dec (put x) = inj₂ λ ()
-Skip-dec (inv x) = inj₂ λ ()
-Skip-dec (rec A) with Skip-dec A
-... | inj₁ x = inj₁ (rec x)
-... | inj₂ y = inj₂ λ { (rec x) → y x }
+>>ε-r : ∀{n} {k k' : Kind n} → k >> k' ≡ ε → k' ≡ ε
+>>ε-r {_} {ε} {ε} refl = refl
 
-Action-dec : ∀{n r} (A : PreType n r) → Action A ⊎ ¬ Action A
-Action-dec (var x) = inj₂ λ ()
-Action-dec (rav x) = inj₂ λ ()
-Action-dec skip = inj₂ λ ()
-Action-dec ⊤ = inj₁ top
-Action-dec 𝟘 = inj₁ zero
-Action-dec ⊥ = inj₁ bot
-Action-dec 𝟙 = inj₁ one
-Action-dec (A ⨟ B) with Action-dec A
-... | inj₁ x = inj₁ (seq x)
-... | inj₂ nx with Action-dec B
-... | inj₂ ny = inj₂ λ { (seq x) → nx x ; (seqε _ y) → ny y}
-... | inj₁ y with Skip-dec A
-... | inj₁ z = inj₁ (seqε z y)
-... | inj₂ nz = inj₂ λ { (seq x) → nx x ; (seqε z y) → nz z}
-Action-dec (A & B) = inj₁ amp
-Action-dec (A ⊕ B) = inj₁ plus
-Action-dec (A ⅋ B) = inj₁ par
-Action-dec (A ⊗ B) = inj₁ ten
-Action-dec (get x) = inj₁ get
-Action-dec (put x) = inj₁ put
-Action-dec (inv x) = inj₂ λ ()
-Action-dec (rec A) with Action-dec A
-... | inj₁ act = inj₁ (rec act)
-... | inj₂ nact = inj₂ λ { (rec act) → nact act }
+>>-weird : (k k' k'' : Kind 0) → k' >> k ≡ k' >> k'' ⊎ k' >> k ≡ k
+>>-weird k ε k'' = inj₂ refl
+>>-weird k • k'' = inj₁ refl
+>>-weird k ∗ k'' = inj₁ refl
 
-Visible-dec : ∀{n r} (A : PreType n r) → Visible A ⊎ ¬ Visible A
-Visible-dec A with Skip-dec A
-... | inj₁ emp = inj₁ (inj₁ emp)
-... | inj₂ ne with Action-dec A
-... | inj₁ act = inj₁ (inj₂ act)
-... | inj₂ nact = inj₂ λ { (inj₁ emp) → ne emp ; (inj₂ act) → nact act}
+>>-weirder : (k k' k'' : Kind 0) → (k ≡ ε → k' >> k'' ≡ ε) → k >> k'' ≡ k' >> k'' ⊎ k >> k'' ≡ k
+>>-weirder ε k' k'' hyp = inj₂ (>>ε-r (hyp refl))
+>>-weirder • k' k'' hyp = inj₂ refl
+>>-weirder ∗ k' k'' hyp = inj₂ refl
+
+>>• : ∀{n} {k k' : Kind n} → k >> k' ≡ • → k ≡ • ⊎ (k ≡ ε × k' ≡ •)
+>>• {_} {ε} eq = inj₂ (refl , eq)
+>>• {_} {•} eq = inj₁ eq
+
+>>∗ : ∀{n} {k k' : Kind n} → k >> k' ≢ ∗ → k ≢ ∗
+>>∗ {_} {ε} {_} ne = λ ()
+>>∗ {_} {•} {_} ne = λ ()
+>>∗ {_} {∗} {_} ne = ne
+>>∗ {_} {var x k} {_} ne = λ ()
+
+>>∗' : ∀{n} {k k' : Kind n} → k >> k' ≡ ∗ → k ≡ ∗ ⊎ (k ≡ ε × k' ≡ ∗)
+>>∗' {_} {ε} {k'} eq = inj₂ (refl , eq)
+>>∗' {_} {∗} {k'} eq = inj₁ eq
+
+ε-unit-r : ∀{n} (k : Kind n) → k >> ε ≡ k
+ε-unit-r ε = refl
+ε-unit-r • = refl
+ε-unit-r ∗ = refl
+ε-unit-r (var x k) = cong (var x) (ε-unit-r k)
+
+kind : ∀{n r} → PreType n r → Kind n
+kind (var x) = var x ε
+kind (rav x) = var x ε
+kind skip = ε
+kind ⊤ = •
+kind 𝟘 = •
+kind ⊥ = •
+kind 𝟙 = •
+kind (A ⨟ B) = kind A >> kind B
+kind (A & B) = •
+kind (A ⊕ B) = •
+kind (A ⅋ B) = •
+kind (A ⊗ B) = •
+kind (get x) = •
+kind (put x) = •
+kind (inv x) = ∗
+kind (rec A) = kind A
+
+kind-dual : ∀{n r} (A : PreType n r) → kind (dual A) ≡ kind A
+kind-dual (var x) = refl
+kind-dual (rav x) = refl
+kind-dual skip = refl
+kind-dual ⊤ = refl
+kind-dual 𝟘 = refl
+kind-dual ⊥ = refl
+kind-dual 𝟙 = refl
+kind-dual (A ⨟ B) = cong₂ _>>_ (kind-dual A) (kind-dual B)
+kind-dual (A & B) = refl
+kind-dual (A ⊕ B) = refl
+kind-dual (A ⅋ B) = refl
+kind-dual (A ⊗ B) = refl
+kind-dual (get x) = refl
+kind-dual (put x) = refl
+kind-dual (inv x) = refl
+kind-dual (rec A) = kind-dual A
+
+KindSubstitution : ℕ → ℕ → Set
+KindSubstitution m n = Fin m → Kind n
+
+k-subst : ∀{m n} (κ : KindSubstitution m n) → Kind m → Kind n
+k-subst κ ε = ε
+k-subst κ • = •
+k-subst κ ∗ = ∗
+k-subst κ (var x k) = κ x >> k-subst κ k
+
+action-k-subst : ∀{n} → KindSubstitution n 0
+action-k-subst _ = •
+
+valid-k-subst : ∀{n} (k : Kind n) → k ≢ ∗ → k-subst action-k-subst k ≡ ε ⊎ k-subst action-k-subst k ≡ •
+valid-k-subst ε ne = inj₁ refl
+valid-k-subst • ne = inj₂ refl
+valid-k-subst ∗ ne = contradiction refl ne
+valid-k-subst (var x k) ne = inj₂ refl
+
+k-subst>> : ∀{m n} (κ : KindSubstitution m n) (k k' : Kind m) →
+            k-subst κ k >> k-subst κ k' ≡ k-subst κ (k >> k')
+k-subst>> κ ε k' = refl
+k-subst>> κ • k' = refl
+k-subst>> κ ∗ k' = refl
+k-subst>> κ (var x k) k' = begin
+    (k-subst κ (var x k) >> k-subst κ k') ≡⟨ refl ⟩
+    (κ x >> k-subst κ k) >> k-subst κ k' ≡⟨ >>-assoc (κ x) (k-subst κ k) (k-subst κ k') ⟩
+    κ x >> (k-subst κ k >> k-subst κ k') ≡⟨ cong (κ x >>_) (k-subst>> κ k k') ⟩
+    κ x >> (k-subst κ (k >> k')) ≡⟨ refl ⟩
+    k-subst κ (var x k >> k') ∎
+  where open Eq.≡-Reasoning
+
+Kinding : ∀{m n} → Substitution m n → KindSubstitution m n → Set
+Kinding σ κ = ∀ x → ∀{r} → kind (σ .at {r} x) ≡ κ x
+
+kinding-action-subst : ∀{n} → Kinding {n} {0} action-subst action-k-subst
+kinding-action-subst _ = refl
+
+kind-subst : ∀{m n r} (A : PreType m r) {σ : Substitution m n} {κ : KindSubstitution m n} →
+             Kinding σ κ → kind (subst σ A) ≡ k-subst κ (kind A)
+kind-subst (var x) {σ} {κ} kind rewrite ε-unit-r (κ x) = kind x
+kind-subst (rav x) {σ} {κ} kind rewrite ε-unit-r (κ x) = Eq.trans (kind-dual (σ .at x)) (kind x)
+kind-subst skip kind = refl
+kind-subst ⊤ kind = refl
+kind-subst 𝟘 kind = refl
+kind-subst ⊥ kind = refl
+kind-subst 𝟙 kind = refl
+kind-subst (A ⨟ B) {σ} {κ} kinding = begin
+    kind (subst σ (A ⨟ B)) ≡⟨ refl ⟩
+    kind (subst σ A ⨟ subst σ B) ≡⟨ refl ⟩
+    kind (subst σ A) >> kind (subst σ B) ≡⟨ cong₂ _>>_ (kind-subst A kinding) (kind-subst B kinding) ⟩
+    k-subst κ (kind A) >> k-subst κ (kind B) ≡⟨ k-subst>> κ (kind A) (kind B) ⟩
+    k-subst κ (kind (A ⨟ B)) ∎
+  where open Eq.≡-Reasoning
+kind-subst (A & B) kind = refl
+kind-subst (A ⊕ B) kind = refl
+kind-subst (A ⅋ B) kind = refl
+kind-subst (A ⊗ B) kind = refl
+kind-subst (get x) kind = refl
+kind-subst (put x) kind = refl
+kind-subst (inv x) kind = refl
+kind-subst (rec A) kind = kind-subst A kind
+
+label-kind : ∀{n} → Label → Kind n
+label-kind ε = ε
+label-kind ⊥ = •
+label-kind 𝟙 = •
+label-kind ⊤ = •
+label-kind 𝟘 = •
+label-kind &L = •
+label-kind &R = •
+label-kind ⊕L = •
+label-kind ⊕R = •
+label-kind ⅋L = •
+label-kind ⅋R = •
+label-kind ⊗L = •
+label-kind ⊗R = •
+label-kind (put x) = •
+label-kind (get x) = •
 
 -- SOUNDNESS
 
-skip-sound : ∀{r} {A : PreType 0 r} → Skip A → A ⊨ ε ⇒ skip
-skip-sound skip = skip
-skip-sound (seq x y) = seqε (skip-sound x) (skip-sound y)
-skip-sound (rec x) = rec (transition-unfold (skip-sound x))
+ε-sound : ∀{n r} (A : PreType n r) → kind A ≡ ε → A ⊨ ε ⇒ skip
+ε-sound skip eq = skip
+ε-sound (A ⨟ B) eq = seqε (ε-sound A (>>ε-l eq)) (ε-sound B (>>ε-r eq))
+ε-sound (rec A) eq = rec (transition-unfold (ε-sound A eq))
 
-action-sound : ∀{r} {A : PreType 0 r} → Action A → ∃[ ℓ ] ∃[ B ] ℓ ≢ ε × A ⊨ ℓ ⇒ B
-action-sound bot = _ , _ , (λ ()) , ⊥
-action-sound one = _ , _ , (λ ()) , 𝟙
-action-sound top = _ , _ , (λ ()) , ⊤
-action-sound zero = _ , _ , (λ ()) , 𝟘
-action-sound put = _ , _ , (λ ()) , put
-action-sound get = _ , _ , (λ ()) , get
-action-sound (seq x) with action-sound x
-... | ℓ , B , ne , y with special-decidable ℓ
-... | inj₂ ns = ℓ , _ , ne , seq y ns
-action-sound (seq x) | ε , B , ne , y | inj₁ sp = contradiction refl ne
-action-sound (seq x) | ⅋L , B , ne , y | inj₁ sp = ⅋L , _ , ne , seq⅋ y
-action-sound (seq x) | ⊗L , B , ne , y | inj₁ sp = ⊗L , _ , ne , seq⊗ y
-action-sound (seqε x y) with action-sound y
-... | ℓ , B , ne , y = ℓ , B , ne , seqε (skip-sound x) y
-action-sound par = _ , _ , (λ ()) , ⅋L
-action-sound ten = _ , _ , (λ ()) , ⊗L
-action-sound amp = _ , _ , (λ ()) , &L
-action-sound plus = _ , _ , (λ ()) , ⊕L
-action-sound (rec x) with action-sound x
-... | ℓ , B , ne , y = ℓ , _ , ne , rec (transition-unfold y)
+•-sound : ∀{n r} (A : PreType n r) → kind A ≡ • → ∃[ ℓ ] ∃[ B ] label-kind ℓ ≡ kind A × A ⊨ ℓ ⇒ B
+•-sound ⊤ eq = ⊤ , ⊤ , eq , ⊤
+•-sound 𝟘 eq = 𝟘 , 𝟘 , eq , 𝟘
+•-sound ⊥ eq = ⊥ , ⊥ , eq , ⊥
+•-sound 𝟙 eq = 𝟙 , 𝟙 , eq , 𝟙
+•-sound (A ⨟ B) eq with >>• eq
+•-sound (A ⨟ B) eq | inj₁ eq' with •-sound A eq'
+... | ℓ , _ , eq'' , tr with special-decidable ℓ
+... | inj₂ ns = _ , _ , Eq.trans eq'' (Eq.trans eq' (Eq.sym eq)) , seq tr ns
+•-sound (A ⨟ B) eq | inj₁ eq' | ε , _ , eq'' , tr | inj₁ sp = contradiction (Eq.trans eq'' eq') λ ()
+•-sound (A ⨟ B) eq | inj₁ eq' | ⅋L , _ , eq'' , tr | inj₁ sp = _ , _ , Eq.sym eq , seq⅋ tr
+•-sound (A ⨟ B) eq | inj₁ eq' | ⊗L , _ , eq'' , tr | inj₁ sp = _ , _ , Eq.sym eq , seq⊗ tr
+•-sound (A ⨟ B) eq | inj₂ (eq' , eq'') with •-sound B eq''
+... | _ , _ , eq''' , tr = _ , _ , Eq.trans eq''' (Eq.trans eq'' (Eq.sym eq)) , seqε (ε-sound A eq') tr
+•-sound (A & B) eq = &L , A , eq , &L
+•-sound (A ⊕ B) eq = ⊕L , A , eq , ⊕L
+•-sound (A ⅋ B) eq = ⅋L , A , eq , ⅋L
+•-sound (A ⊗ B) eq = ⊗L , A , eq , ⊗L
+•-sound (get x) eq = get x , skip , eq , get
+•-sound (put x) eq = put x , skip , eq , put
+•-sound (rec A) eq with •-sound A eq
+... | _ , _ , eq' , tr = _ , _ , eq' , rec (transition-unfold tr)
 
-visible-sound : ∀{r} {A : PreType 0 r} → Visible A → ∃[ ℓ ] ∃[ B ] A ⊨ ℓ ⇒ B
-visible-sound (inj₁ x) = ε , skip , skip-sound x
-visible-sound (inj₂ x) with action-sound x
-... | ℓ , B , _ , tr = ℓ , B , tr
+kind-sound : ∀{n r} (A : PreType n r) → kind A ≢ ∗ → Σ[ σ ∈ Substitution n 0 ] ∃[ ℓ ] ∃[ B ] subst σ A ⊨ ℓ ⇒ B
+kind-sound A ne with valid-k-subst (kind A) ne
+... | inj₁ eq = action-subst , ε , _ , ε-sound (subst action-subst A) (Eq.trans (kind-subst A kinding-action-subst) eq)
+... | inj₂ eq with •-sound (subst action-subst A) (Eq.trans (kind-subst A kinding-action-subst) eq)
+... | ℓ , B , eq' , tr = action-subst , ℓ , B , tr
 
 -- COMPLETENESS
 
-skip-rename-suc : ∀{k n r} {A : PreType n (k + r)} → Skip (rename (ext∗ {r} k suc) A) → Skip A
-skip-rename-suc {A = var x} emp = var
-skip-rename-suc {A = rav x} emp = rav
-skip-rename-suc {A = skip} emp = skip
-skip-rename-suc {k} {A = A ⨟ B} (seq ea eb) = seq (skip-rename-suc {k} ea) (skip-rename-suc {k} eb)
-skip-rename-suc {k} {A = rec A} (rec emp) = rec (skip-rename-suc {suc k} emp)
+kind-rename-suc : ∀{k n r} (A : PreType n (k + r)) → kind (rename (ext∗ {r} k suc) A) ≡ kind A
+kind-rename-suc (var x) = refl
+kind-rename-suc (rav x) = refl
+kind-rename-suc skip = refl
+kind-rename-suc ⊤ = refl
+kind-rename-suc 𝟘 = refl
+kind-rename-suc ⊥ = refl
+kind-rename-suc 𝟙 = refl
+kind-rename-suc {k} {r = r} (A ⨟ B) = cong₂ _>>_ (kind-rename-suc {k} {r = r} A) (kind-rename-suc {k} {r = r} B)
+kind-rename-suc (A & B) = refl
+kind-rename-suc (A ⊕ B) = refl
+kind-rename-suc (A ⅋ B) = refl
+kind-rename-suc (A ⊗ B) = refl
+kind-rename-suc (get x) = refl
+kind-rename-suc (put x) = refl
+kind-rename-suc (inv x) = refl
+kind-rename-suc {k} {n} {r} (rec A) = kind-rename-suc {suc k} {n} {r} A
 
-action-rename-suc : ∀{k n r} {A : PreType n (k + r)} → Action (rename (ext∗ {r} k suc) A) → Action A
-action-rename-suc {A = ⊤} act = top
-action-rename-suc {A = 𝟘} act = zero
-action-rename-suc {A = ⊥} act = bot
-action-rename-suc {A = 𝟙} act = one
-action-rename-suc {k} {A = A ⨟ B} (seq act) = seq (action-rename-suc {k} act)
-action-rename-suc {k} {A = A ⨟ B} (seqε emp act) = seqε (skip-rename-suc {k} emp) (action-rename-suc {k} act)
-action-rename-suc {A = A & B} act = amp
-action-rename-suc {A = A ⊕ B} act = plus
-action-rename-suc {A = A ⅋ B} act = par
-action-rename-suc {A = A ⊗ B} act = ten
-action-rename-suc {A = get x} act = get
-action-rename-suc {A = put x} act = put
-action-rename-suc {k} {A = rec A} (rec act) = rec (action-rename-suc {suc k} act)
+kind-exts∗-s-just : ∀{k n r} {A : PreType n (suc r)} (x : Fin (suc k + r)) →
+                    kind (exts∗ k (s-just (rec A)) x) ≡ ∗ ⊎
+                    kind (exts∗ k (s-just (rec A)) x) ≡ kind A
+kind-exts∗-s-just {zero} zero = inj₂ refl
+kind-exts∗-s-just {zero} (suc x) = inj₁ refl
+kind-exts∗-s-just {suc k} zero = inj₁ refl
+kind-exts∗-s-just {suc k} {A = A} (suc x) rewrite kind-rename-suc {0} (exts∗ k (s-just (rec A)) x) =
+  kind-exts∗-s-just {A = A} x
 
-skip-exts∗-s-just : ∀{k n r} {A : PreType n (suc r)} (x : Fin (suc k + r)) →
-                    Skip (exts∗ k (s-just (rec A)) x) → Skip (rec A)
-skip-exts∗-s-just {zero} zero emp = emp
-skip-exts∗-s-just {suc k} (suc x) emp = skip-exts∗-s-just x (skip-rename-suc {0} emp)
+kind-rec-subst : ∀{k r} {A : PreType 0 (suc r)} (B : PreType 0 (suc k + r)) →
+                 (kind A ≡ ε → kind B ≡ ε) →
+                 kind (rec-subst (exts∗ k (s-just (rec A))) B) ≡ kind B ⊎
+                 kind (rec-subst (exts∗ k (s-just (rec A))) B) ≡ kind A
+kind-rec-subst (var x) hyp = inj₁ refl
+kind-rec-subst (rav x) hyp = inj₁ refl
+kind-rec-subst skip hyp = inj₁ refl
+kind-rec-subst ⊤ hyp = inj₁ refl
+kind-rec-subst 𝟘 hyp = inj₁ refl
+kind-rec-subst ⊥ hyp = inj₁ refl
+kind-rec-subst 𝟙 hyp = inj₁ refl
+kind-rec-subst {A = A} (B ⨟ C) hyp
+  with kind-rec-subst {A = A} B (λ eq → >>ε-l (hyp eq)) |
+       kind-rec-subst {A = A} C (λ eq → >>ε-r (hyp eq))
+... | inj₁ x | inj₁ y = inj₁ (cong₂ _>>_ x y)
+... | inj₁ x | inj₂ y rewrite x | y = >>-weird (kind A) (kind B) (kind C)
+... | inj₂ x | inj₁ y rewrite x | y = >>-weirder (kind A) (kind B) (kind C) hyp
+... | inj₂ x | inj₂ y rewrite x | y = inj₂ (>>-idempotent (kind A))
+kind-rec-subst (B & C) hyp = inj₁ refl
+kind-rec-subst (B ⊕ C) hyp = inj₁ refl
+kind-rec-subst (B ⅋ C) hyp = inj₁ refl
+kind-rec-subst (B ⊗ C) hyp = inj₁ refl
+kind-rec-subst (get x) hyp = inj₁ refl
+kind-rec-subst (put x) hyp = inj₁ refl
+kind-rec-subst {A = A} (inv x) hyp = kind-exts∗-s-just {A = A} x
+kind-rec-subst {A = A} (rec B) hyp = kind-rec-subst {A = A} B hyp
 
-action-exts∗-s-just : ∀{k n r} {A : PreType n (suc r)} (x : Fin (suc k + r)) →
-                      Action (exts∗ k (s-just (rec A)) x) → Action (rec A)
-action-exts∗-s-just {zero} zero act = act
-action-exts∗-s-just {suc k} (suc x) act = action-exts∗-s-just x (action-rename-suc {0} act)
+kind-unfold : ∀{r} (A : PreType 0 (suc r)) → kind (unfold A) ≡ kind A
+kind-unfold A with kind-rec-subst {A = A} A (λ eq → eq)
+... | inj₁ x = x
+... | inj₂ x = x
 
-skip-rec-subst : ∀{k n r} {A : PreType n (suc r)} (B : PreType n (suc k + r)) →
-                 Skip (rec-subst (exts∗ k (s-just (rec A))) B) → Skip B ⊎ Skip (rec A)
-skip-rec-subst (var x) emp = inj₁ var
-skip-rec-subst (rav x) emp = inj₁ rav
-skip-rec-subst skip emp = inj₁ skip
-skip-rec-subst {A = A} (B ⨟ C) (seq eb ec) with skip-rec-subst {A = A} B eb | skip-rec-subst {A = A} C ec
-... | inj₁ eb' | inj₁ ec' = inj₁ (seq eb' ec')
-... | inj₁ eb' | inj₂ ea = inj₂ ea
-... | inj₂ ea | _ = inj₂ ea
-skip-rec-subst (inv x) emp = inj₂ (skip-exts∗-s-just x emp)
-skip-rec-subst {A = A} (rec B) (rec emp) with skip-rec-subst {A = A} B emp
-... | inj₁ x = inj₁ (rec x)
-... | inj₂ y = inj₂ y
+ε-complete : ∀{r} {A : PreType 0 r} → A ⊨ ε ⇒ skip → kind A ≡ ε
+ε-complete skip = refl
+ε-complete (seqε tr tr') rewrite ε-complete tr | ε-complete tr' = refl
+ε-complete {A = rec A} (rec tr) = Eq.trans (Eq.sym (kind-unfold A)) (ε-complete tr)
 
-action-rec-subst : ∀{k n r} {A : PreType n (suc r)} (B : PreType n (suc k + r)) →
-                   Action (rec-subst (exts∗ k (s-just (rec A))) B) →
-                   Action B ⊎ Action (rec A) ⊎ Skip (rec A)
-action-rec-subst ⊤ top = inj₁ top
-action-rec-subst 𝟘 zero = inj₁ zero
-action-rec-subst ⊥ bot = inj₁ bot
-action-rec-subst 𝟙 one = inj₁ one
-action-rec-subst {A = A} (B ⨟ C) (seq act) with action-rec-subst {A = A} B act
-... | inj₁ x = inj₁ (seq x)
-... | inj₂ y = inj₂ y
-action-rec-subst {A = A} (B ⨟ C) (seqε sk act) with skip-rec-subst {A = A} B sk | action-rec-subst {A = A} C act
-... | inj₁ x | inj₁ y = inj₁ (seqε x y)
-... | inj₁ x | inj₂ y = inj₂ y
-... | inj₂ x | inj₁ y = inj₂ (inj₂ x)
-... | inj₂ x | inj₂ y = inj₂ y
-action-rec-subst (B & C) amp = inj₁ amp
-action-rec-subst (B ⊕ C) plus = inj₁ plus
-action-rec-subst (B ⅋ C) par = inj₁ par
-action-rec-subst (B ⊗ C) ten = inj₁ ten
-action-rec-subst (get x) get = inj₁ get
-action-rec-subst (put x) put = inj₁ put
-action-rec-subst (inv x) act = inj₂ (inj₁ (action-exts∗-s-just x act))
-action-rec-subst {A = A} (rec B) (rec act) with action-rec-subst {A = A} B act
-... | inj₁ x = inj₁ (rec x)
-... | inj₂ y = inj₂ y
+•-complete : ∀{r ℓ} {A B : PreType 0 r} → ℓ ≢ ε → A ⊨ ℓ ⇒ B → kind A ≡ •
+•-complete ne skip = contradiction refl ne
+•-complete ne ⊥ = refl
+•-complete ne 𝟙 = refl
+•-complete ne ⊤ = refl
+•-complete ne 𝟘 = refl
+•-complete ne &L = refl
+•-complete ne &R = refl
+•-complete ne ⊕L = refl
+•-complete ne ⊕R = refl
+•-complete ne ⅋L = refl
+•-complete ne ⅋R = refl
+•-complete ne ⊗L = refl
+•-complete ne ⊗R = refl
+•-complete ne (seq tr ns) rewrite •-complete ne tr = refl
+•-complete ne (seqε sk tr) rewrite ε-complete sk = •-complete ne tr
+•-complete ne (seq⊗ tr) rewrite •-complete ne tr = refl
+•-complete ne (seq⅋ tr) rewrite •-complete ne tr = refl
+•-complete ne put = refl
+•-complete ne get = refl
+•-complete {A = rec A} ne (rec tr) = Eq.trans (Eq.sym (kind-unfold A)) (•-complete ne tr)
 
-skip-unfold : ∀{n r} {A : PreType n (suc r)} → Skip (unfold A) → Skip (rec A)
-skip-unfold {A = A} emp with skip-rec-subst {A = A} A emp
-... | inj₁ ea = rec ea
-... | inj₂ ea = ea
+ε-preserved : ∀{n r} (A : PreType n r) (σ : Substitution n 0) → kind A ≡ ε → kind (subst σ A) ≡ ε
+ε-preserved skip σ eq = refl
+ε-preserved (A ⨟ B) σ eq rewrite ε-preserved A σ (>>ε-l eq) | ε-preserved B σ (>>ε-r eq) = refl
+ε-preserved (rec A) σ eq = ε-preserved A σ eq
 
-action-unfold : ∀{n r} {A : PreType n (suc r)} → Action (unfold A) → Action (rec A)
-action-unfold {A = A} act with action-rec-subst {A = A} A act
-... | inj₁ x = rec x
-... | inj₂ (inj₁ x) = x
-... | inj₂ (inj₂ (rec x)) = contradiction act (skip-not-action (skip-after-rec-subst x))
+∗-preserved : ∀{n r} (A : PreType n r) (σ : Substitution n 0) → kind A ≡ ∗ → kind (subst σ A) ≡ ∗
+∗-preserved (A ⨟ B) σ eq with >>∗' {_} {kind A} {kind B} eq
+... | inj₁ eq' rewrite ∗-preserved A σ eq' = refl
+... | inj₂ (eq' , eq'') rewrite ε-preserved A σ eq' = ∗-preserved B σ eq''
+∗-preserved (inv x) σ eq = refl
+∗-preserved (rec A) σ eq = ∗-preserved A σ eq
 
-skip-complete : ∀{n r} {A : PreType n r} → A ⊨ ε ⇒ skip → Skip A
-skip-complete skip = skip
-skip-complete (seqε x y) = seq (skip-complete x) (skip-complete y)
-skip-complete (rec x) = skip-unfold (skip-complete x)
-
-action-complete : ∀{n r ℓ} {A B : PreType n r} → ℓ ≢ ε → A ⊨ ℓ ⇒ B → Action A
-action-complete ne skip = contradiction refl ne
-action-complete ne ⊥ = bot
-action-complete ne 𝟙 = one
-action-complete ne ⊤ = top
-action-complete ne 𝟘 = zero
-action-complete ne &L = amp
-action-complete ne &R = amp
-action-complete ne ⊕L = plus
-action-complete ne ⊕R = plus
-action-complete ne ⅋L = par
-action-complete ne ⅋R = par
-action-complete ne ⊗L = ten
-action-complete ne ⊗R = ten
-action-complete ne (seq x _) = seq (action-complete ne x)
-action-complete ne (seqε x y) = seqε (skip-complete x) (action-complete ne y)
-action-complete ne (seq⊗ x) = seq (action-complete ne x)
-action-complete ne (seq⅋ x) = seq (action-complete ne x)
-action-complete ne put = put
-action-complete ne get = get
-action-complete ne (rec x) = action-unfold (action-complete ne x)
-
-visible-complete : ∀{n r ℓ} {A B : PreType n r} → A ⊨ ℓ ⇒ B → Visible A
-visible-complete {ℓ = ℓ} tr with special-decidable ℓ
-... | inj₂ ns = inj₂ (action-complete (λ { refl → ns ε }) tr)
-... | inj₁ ε = inj₁ (skip-complete (Eq.subst (_ ⊨ _ ⇒_) (afterεskip tr) tr))
-... | inj₁ ⊗L = inj₂ (action-complete (λ ()) tr)
-... | inj₁ ⅋L = inj₂ (action-complete (λ ()) tr)
+kind-complete : ∀{n r ℓ} (A : PreType n r) {B : PreType 0 r} (σ : Substitution n 0) →
+                subst σ A ⊨ ℓ ⇒ B → kind A ≢ ∗
+kind-complete {ℓ = ℓ} A σ tr ast with special-decidable ℓ
+kind-complete {ℓ = ℓ} A σ tr ast | inj₁ ε with afterεskip tr
+... | refl with Eq.trans (Eq.sym (ε-complete tr)) (∗-preserved A σ ast)
+... | ()
+kind-complete {ℓ = ℓ} A σ tr ast | inj₁ ⊗L with Eq.trans (Eq.sym (•-complete (λ ()) tr)) (∗-preserved A σ ast)
+... | ()
+kind-complete {ℓ = ℓ} A σ tr ast | inj₁ ⅋L  with Eq.trans (Eq.sym (•-complete (λ ()) tr)) (∗-preserved A σ ast)
+... | ()
+kind-complete {ℓ = ℓ} A σ tr ast | inj₂ ns with Eq.trans (Eq.sym (•-complete (not-special-not-ε ns) tr)) (∗-preserved A σ ast)
+... | ()

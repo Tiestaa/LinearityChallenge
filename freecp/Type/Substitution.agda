@@ -30,6 +30,10 @@ skip-subst : ∀{m n} → Substitution m n
 skip-subst .at _ = skip
 skip-subst .co _ = skip
 
+action-subst : ∀{m n} → Substitution m n
+action-subst .at _ = ⊥
+action-subst .co _ = bot
+
 subst : ∀{n m r} → Substitution n m → PreType n r → PreType m r
 subst σ (var x) = σ .at x
 subst σ (rav x) = dual (σ .at x)
