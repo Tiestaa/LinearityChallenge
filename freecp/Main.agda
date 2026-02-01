@@ -7,6 +7,7 @@ import Type.Equality
 import Type.Unfolding
 import Type.Substitution
 import Type.Equivalence
+import Type.Kind
 import Type.HeadNormalForm
 import Context
 import Permutations

@@ -5,7 +5,7 @@ open import Data.Fin using (Fin)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_; contradiction)
-open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl)
 open import Agda.Builtin.Equality.Rewrite
 
 open import Axioms
@@ -14,7 +14,7 @@ open import Type.Equality
 open import Type.Transitions
 open import Type.Equivalence
 open import Type.Substitution
--- open import Type.Kind
+open import Type.Kind
 
 data Visible {n} (A : Type n) : Set where
   visible : ∀{m ℓ B} (σ : Substitution n m) → subst σ A ⊨ ℓ ⇒ B → Visible A
@@ -102,50 +102,27 @@ nf-invisible : ∀{n} {A : Type n} → ¬ Visible A → A ≈ void
 nf-invisible nv .to σ .Sim.next tr = contradiction (visible σ tr) nv
 nf-invisible nv .from σ .Sim.next tr = contradiction tr void-no-transitions
 
--- head-normal-form : ∀{n} (A : Type n) → ∃[ N ] HeadNormalForm N × A ≈ N
--- head-normal-form A with excluded-middle (Visible A)
--- ... | inj₁ vis = nf-visible A vis
--- ... | inj₂ nv = _ , null , nf-invisible nv
+visible-decidable-visible : ∀{n} (A : Type n) → kind A ≢ ∗ → Visible A
+visible-decidable-visible A ne with kind-sound A ne
+... | σ , ℓ , B , tr = visible σ tr
 
--- transition-action-subst : ∀{n m ℓ} {A : Type n} {B : Type m} (σ : Substitution n m) →
---                           subst σ A ⊨ ℓ ⇒ B → ∃[ ℓ' ] ∃[ C ] subst (action-subst {_} {0}) A ⊨ ℓ' ⇒ C
--- transition-action-subst = {!!}
+visible-decidable-invisible : ∀{n} (A : Type n) → kind A ≡ ∗ → ¬ Visible A
+visible-decidable-invisible {n} A eq (visible {m} σ tr) with transition-subst {n = 0} action-subst tr
+... | tr' rewrite subst-compose {n} {m} {0} σ action-subst A with kind-complete A (action-subst · σ) tr'
+... | ne = ne eq
 
--- visible-action-subst : ∀{n} {A : Type n} → Visible A → Visible (subst (action-subst {_} {0}) A)
--- visible-action-subst (visible σ tr) with transition-action-subst σ tr
--- ... | _ , _ , tr' = visible action-subst tr'
+ast-or-not : ∀{n} (k : Kind n) → k ≡ ∗ ⊎ k ≢ ∗
+ast-or-not ε = inj₂ (λ ())
+ast-or-not • = inj₂ (λ ())
+ast-or-not ∗ = inj₁ refl
+ast-or-not (var x k) = inj₂ (λ ())
 
--- -- useless-subst : ∀{n} (A : Type 0) {σ : Substitution 0 n} → subst σ A ~ A
+visible-decidable : ∀{n} (A : Type n) → Visible A ⊎ ¬ Visible A
+visible-decidable A with ast-or-not (kind A)
+... | inj₁ eq = inj₂ (visible-decidable-invisible A eq)
+... | inj₂ ne = inj₁ (visible-decidable-visible A ne)
 
--- big : ∀{n m} (A : Type n) {σ : Substitution n m} →
---       ¬ Empty (subst (action-subst {n} {0}) A) → ¬ Action (subst (action-subst {n} {0}) A) →
---       ¬ Empty (subst σ A) × ¬ Action (subst σ A)
--- big (var x) nskip nact = contradiction bot nact
--- big (rav x) nskip nact = contradiction one nact
--- big skip nskip nact = contradiction skip nskip
--- big ⊤ nskip nact = contradiction top nact
--- big 𝟘 nskip nact = contradiction zero nact
--- big ⊥ nskip nact = contradiction bot nact
--- big 𝟙 nskip nact = contradiction one nact
--- big (A ⨟ B) nskip nact = (λ { (seq x y) → {!!}}) , {!!}
--- big (A & B) nskip nact = contradiction amp nact
--- big (A ⊕ B) nskip nact = contradiction plus nact
--- big (A ⅋ B) nskip nact = contradiction par nact
--- big (A ⊗ B) nskip nact = contradiction ten nact
--- big (get x) nskip nact = contradiction get nact
--- big (put x) nskip nact = contradiction put nact
--- big (rec A) nskip nact = {!!}
-
--- boh : ∀{n} (σ : Substitution 0 n) (x : Fin 0) → σ .at x ≡ inv x
--- boh σ ()
-
--- ¬Skip¬Action¬Visible : {A : Type 0} → ¬ Empty A → ¬ Action A → ¬ Visible A
--- ¬Skip¬Action¬Visible nskip nact (visible {ℓ = ℓ} σ tr) = {!!}
-
--- Visible-dec : ∀{n} (A : Type n) → Visible A ⊎ ¬ Visible A
--- Visible-dec A with Empty-dec (subst (action-subst {_} {0}) A)
--- ... | inj₁ sk = inj₁ (visible action-subst (empty-sound sk))
--- ... | inj₂ nskip with Action-dec (subst (action-subst {_} {0}) A)
--- ... | inj₂ nact = inj₂ {!!}
--- ... | inj₁ act with action-sound act
--- ... | _ , _ , _ , tr = inj₁ (visible action-subst tr)
+head-normal-form : ∀{n} (A : Type n) → ∃[ N ] HeadNormalForm N × A ≈ N
+head-normal-form A with visible-decidable A
+... | inj₁ vis = nf-visible A vis
+... | inj₂ nv = _ , null , nf-invisible nv
