@@ -14,6 +14,8 @@ open import Agda.Builtin.Equality.Rewrite
 
 open import Axioms
 open import Type
+open import Type.Renaming
+open import Type.Unfolding
 open import Type.Equality
 
 record Substitution (m n : ℕ) : Set where
@@ -137,18 +139,18 @@ subst-compose σ₁ σ₂ (put μ) = refl
 subst-compose σ₁ σ₂ (inv x) = refl
 subst-compose σ₁ σ₂ (rec A) = cong rec (subst-compose σ₁ σ₂ A)
 
-IdentitySubstitution : ∀{n r s} → ℕ → Unfolding n r s → Set
-IdentitySubstitution k τ = ∀{x} → toℕ x < k → τ x ~ inv x
+IdentityUnfolding : ∀{n r s} → ℕ → Unfolding n r s → Set
+IdentityUnfolding k τ = ∀{x} → toℕ x < k → τ x ~ inv x
 
-id-zero : ∀{n r s} (τ : Unfolding n r s) → IdentitySubstitution 0 τ
+id-zero : ∀{n r s} (τ : Unfolding n r s) → IdentityUnfolding 0 τ
 id-zero τ ()
 
-exts-id : ∀{n r s k} {τ : Unfolding n r s} → IdentitySubstitution k τ → IdentitySubstitution (suc k) (exts τ)
+exts-id : ∀{n r s k} {τ : Unfolding n r s} → IdentityUnfolding k τ → IdentityUnfolding (suc k) (exts τ)
 exts-id iτ {zero} x<k = inv refl
 exts-id iτ {suc x} (_≤_.s≤s x<k) = ~rename suc suc (cong suc) (iτ x<k)
 
 rec-subst-~ : ∀{n r s t}
-              {τ : Unfolding n r s} → IdentitySubstitution t τ →
+              {τ : Unfolding n r s} → IdentityUnfolding t τ →
               {A : PreType n r} {B : PreType n t} → A ~ B → rec-subst τ A ~ A
 rec-subst-~ iτ skip = skip
 rec-subst-~ iτ bot = bot

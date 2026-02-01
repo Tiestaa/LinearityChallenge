@@ -11,6 +11,7 @@ open import Relation.Unary using (Decidable)
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; sym; cong)
 
 open import Type
+open import Type.Unfolding
 open import Type.Transitions
 open import Type.Substitution
 
@@ -303,30 +304,6 @@ _≲_ {n} A B = ∀{m} (σ : Substitution n m) → Sim (subst σ A) (subst σ B)
 ≲subst : ∀{m n} {A B : Type m} (σ : Substitution m n) →
          A ≲ B → subst σ A ≲ subst σ B
 ≲subst {A = A} {B} σ le τ rewrite subst-compose σ τ A | subst-compose σ τ B = le (τ · σ)
-
-transition-subst : ∀{m n ℓ} {A B : Type m} (σ : Substitution m n) →
-                   A ⊨ ℓ ⇒ B → subst σ A ⊨ ℓ ⇒ subst σ B
-transition-subst σ skip = skip
-transition-subst σ ⊥ = ⊥
-transition-subst σ 𝟙 = 𝟙
-transition-subst σ ⊤ = ⊤
-transition-subst σ 𝟘 = 𝟘
-transition-subst σ &L = &L
-transition-subst σ &R = &R
-transition-subst σ ⊕L = ⊕L
-transition-subst σ ⊕R = ⊕R
-transition-subst σ ⅋L = ⅋L
-transition-subst σ ⅋R = ⅋R
-transition-subst σ ⊗L = ⊗L
-transition-subst σ ⊗R = ⊗R
-transition-subst σ (seq tr ns) = seq (transition-subst σ tr) ns
-transition-subst σ (seqε sk tr) = seqε (transition-subst σ sk) (transition-subst σ tr)
-transition-subst σ (seq⊗ tr) = seq⊗ (transition-subst σ tr)
-transition-subst σ (seq⅋ tr) = seq⅋ (transition-subst σ tr)
-transition-subst σ put = put
-transition-subst σ get = get
-transition-subst σ (rec {A = A} tr) with transition-subst σ tr
-... | tr' rewrite sym (unfold-subst σ A) = rec tr'
 
 ≲after : ∀{n ℓ} {A A' B B' : Type n} → A ⊨ ℓ ⇒ A' → B ⊨ ℓ ⇒ B' → A ≲ B → A' ≲ B'
 ≲after x y le σ = sim-after (le σ) (transition-subst σ x) (transition-subst σ y)

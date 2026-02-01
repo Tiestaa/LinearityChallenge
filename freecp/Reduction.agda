@@ -2,7 +2,7 @@
 open import Data.Sum using (inj₁; inj₂)
 open import Data.Product using (_,_)
 open import Data.Fin using (Fin)
-open import Data.Nat using (ℕ; suc; _+_; _≤_; _<_)
+open import Data.Nat using (ℕ; suc; _+_; _≤_; s≤s; _<_)
 import Data.Nat.Properties as Nat
 open import Data.List.Base using ([]; _∷_; [_]; _++_)
 open import Data.List.Properties using (++-assoc)
@@ -74,8 +74,8 @@ data _⊢_↝_ {n Σ Γ} (ℙ : Def Σ) : ∀{Δ μ ν} → Proc {n} Σ μ Γ �
 ↝size (r-call x σ π) = Nat.≤-refl
 ↝size (r-link {μ = μ} {ν} eq eq' p) rewrite Nat.+-comm μ ν = Nat.m≤m+n (suc ν) μ
 ↝size (r-close {μ = μ} {ν} eq p p₀) rewrite Nat.+-suc μ ν = Nat.m≤m+n (suc μ) ν
-↝size (r-select-l {μ = μ} eq p p₀ q₀) = Nat.+-monoʳ-< μ Nat.≤-refl
-↝size (r-select-r {μ = μ} eq p p₀ q₀) = Nat.+-monoʳ-< μ Nat.≤-refl
+↝size (r-select-l {μ = μ} eq p p₀ q₀) = s≤s Nat.≤-refl
+↝size (r-select-r {μ = μ} eq p p₀ q₀) = s≤s Nat.≤-refl
 ↝size (r-fork {μ = μ} {ν} {ω} eq p p₀ q q₀)
   rewrite Nat.+-assoc μ ν ω | Nat.+-suc μ (ν + ω) = Nat.≤-refl
 ↝size (r-put {μ₂ = μ₂} {ν} {ω} eq refl p p₀ q₀)

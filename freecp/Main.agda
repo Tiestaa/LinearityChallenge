@@ -2,10 +2,11 @@
 
 import Axioms
 import Type
-import Type.Transitions
-import Type.Equality
+import Type.Renaming
 import Type.Unfolding
+import Type.Equality
 import Type.Substitution
+import Type.Transitions
 import Type.Equivalence
 import Type.Kind
 import Type.HeadNormalForm

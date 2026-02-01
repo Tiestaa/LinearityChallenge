@@ -14,6 +14,7 @@ open import Agda.Builtin.Equality.Rewrite
 
 open import Axioms
 open import Type
+open import Type.Renaming
 
 data _~_ {n r s} : PreType n r → PreType n s → Set where
   skip : skip ~ skip

@@ -11,10 +11,11 @@ open import Agda.Builtin.Equality.Rewrite
 open import Axioms
 open import Type
 open import Type.Equality
-open import Type.Transitions
+open import Type.Unfolding
 open import Type.Equivalence
 open import Type.Substitution
 open import Type.Kind
+open import Type.Transitions
 
 data Visible {n} (A : Type n) : Set where
   visible : ∀{m ℓ B} (σ : Substitution n m) → subst σ A ⊨ ℓ ⇒ B → Visible A

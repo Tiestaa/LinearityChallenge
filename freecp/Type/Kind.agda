@@ -9,46 +9,14 @@ open import Relation.Nullary using (¬_; contradiction)
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl; cong; cong₂)
 
 open import Type
-open import Type.Transitions
+open import Type.Renaming
 open import Type.Unfolding
 open import Type.Substitution
-
-transition-rec-subst : ∀{n r s ℓ} (σ : Unfolding n r s) {A B : PreType n r} →
-                       A ⊨ ℓ ⇒ B → rec-subst σ A ⊨ ℓ ⇒ rec-subst σ B
-transition-rec-subst σ skip = skip
-transition-rec-subst σ ⊥ = ⊥
-transition-rec-subst σ 𝟙 = 𝟙
-transition-rec-subst σ ⊤ = ⊤
-transition-rec-subst σ 𝟘 = 𝟘
-transition-rec-subst σ &L = &L
-transition-rec-subst σ &R = &R
-transition-rec-subst σ ⊕L = ⊕L
-transition-rec-subst σ ⊕R = ⊕R
-transition-rec-subst σ ⅋L = ⅋L
-transition-rec-subst σ ⅋R = ⅋R
-transition-rec-subst σ ⊗L = ⊗L
-transition-rec-subst σ ⊗R = ⊗R
-transition-rec-subst σ (seq x ns) = seq (transition-rec-subst σ x) ns
-transition-rec-subst σ (seqε x y) = seqε (transition-rec-subst σ x) (transition-rec-subst σ y)
-transition-rec-subst σ (seq⊗ x) = seq⊗ (transition-rec-subst σ x)
-transition-rec-subst σ (seq⅋ x) = seq⅋ (transition-rec-subst σ x)
-transition-rec-subst σ put = put
-transition-rec-subst σ get = get
-transition-rec-subst σ {rec A} (rec x) with transition-rec-subst σ x
-... | y rewrite rec-subst-unfold σ A = rec y
-
-transition-unfold : ∀{n r ℓ} {A B : PreType n (suc r)} →
-                    A ⊨ ℓ ⇒ B → unfold A ⊨ ℓ ⇒ rec-subst (s-just (rec A)) B
-transition-unfold x = transition-rec-subst (s-just (rec _)) x
+open import Type.Transitions
 
 data Kind (n : ℕ) : Set where
   ε • ∗ : Kind n
   var   : Fin n → Kind n → Kind n
-
-data Ground {n : ℕ} : Kind n → Set where
-  ε : Ground ε
-  • : Ground •
-  ∗ : Ground ∗
 
 _>>_ : ∀{n} → Kind n → Kind n → Kind n
 ε >> k' = k'

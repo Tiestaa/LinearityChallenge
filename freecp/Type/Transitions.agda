@@ -1,13 +1,15 @@
 {-# OPTIONS --rewriting --guardedness #-}
 module Type.Transitions where
 
-open import Data.Nat using (ℕ)
+open import Data.Nat using (ℕ; suc)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_; contradiction; contraposition)
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl; cong; cong₂)
 
 open import Type
+open import Type.Unfolding
+open import Type.Substitution
 
 data Label : Set where
   ε ⊥ 𝟙 ⊤ 𝟘 &L &R ⊕L ⊕R ⅋L ⅋R ⊗L ⊗R : Label
@@ -175,3 +177,56 @@ transition-dual (seq⅋ x) = seq⊗ (transition-dual x)
 transition-dual put = get
 transition-dual get = put
 transition-dual (rec x) = rec (transition-dual x)
+
+transition-rec-subst : ∀{n r s ℓ} (σ : Unfolding n r s) {A B : PreType n r} →
+                       A ⊨ ℓ ⇒ B → rec-subst σ A ⊨ ℓ ⇒ rec-subst σ B
+transition-rec-subst σ skip = skip
+transition-rec-subst σ ⊥ = ⊥
+transition-rec-subst σ 𝟙 = 𝟙
+transition-rec-subst σ ⊤ = ⊤
+transition-rec-subst σ 𝟘 = 𝟘
+transition-rec-subst σ &L = &L
+transition-rec-subst σ &R = &R
+transition-rec-subst σ ⊕L = ⊕L
+transition-rec-subst σ ⊕R = ⊕R
+transition-rec-subst σ ⅋L = ⅋L
+transition-rec-subst σ ⅋R = ⅋R
+transition-rec-subst σ ⊗L = ⊗L
+transition-rec-subst σ ⊗R = ⊗R
+transition-rec-subst σ (seq x ns) = seq (transition-rec-subst σ x) ns
+transition-rec-subst σ (seqε x y) = seqε (transition-rec-subst σ x) (transition-rec-subst σ y)
+transition-rec-subst σ (seq⊗ x) = seq⊗ (transition-rec-subst σ x)
+transition-rec-subst σ (seq⅋ x) = seq⅋ (transition-rec-subst σ x)
+transition-rec-subst σ put = put
+transition-rec-subst σ get = get
+transition-rec-subst σ {rec A} (rec x) with transition-rec-subst σ x
+... | y rewrite rec-subst-unfold σ A = rec y
+
+transition-unfold : ∀{n r ℓ} {A B : PreType n (suc r)} →
+                    A ⊨ ℓ ⇒ B → unfold A ⊨ ℓ ⇒ rec-subst (s-just (rec A)) B
+transition-unfold x = transition-rec-subst (s-just (rec _)) x
+
+transition-subst : ∀{m n ℓ} {A B : Type m} (σ : Substitution m n) →
+                   A ⊨ ℓ ⇒ B → subst σ A ⊨ ℓ ⇒ subst σ B
+transition-subst σ skip = skip
+transition-subst σ ⊥ = ⊥
+transition-subst σ 𝟙 = 𝟙
+transition-subst σ ⊤ = ⊤
+transition-subst σ 𝟘 = 𝟘
+transition-subst σ &L = &L
+transition-subst σ &R = &R
+transition-subst σ ⊕L = ⊕L
+transition-subst σ ⊕R = ⊕R
+transition-subst σ ⅋L = ⅋L
+transition-subst σ ⅋R = ⅋R
+transition-subst σ ⊗L = ⊗L
+transition-subst σ ⊗R = ⊗R
+transition-subst σ (seq tr ns) = seq (transition-subst σ tr) ns
+transition-subst σ (seqε sk tr) = seqε (transition-subst σ sk) (transition-subst σ tr)
+transition-subst σ (seq⊗ tr) = seq⊗ (transition-subst σ tr)
+transition-subst σ (seq⅋ tr) = seq⅋ (transition-subst σ tr)
+transition-subst σ put = put
+transition-subst σ get = get
+transition-subst σ (rec {A = A} tr) with transition-subst σ tr
+... | tr' rewrite Eq.sym (unfold-subst σ A) = rec tr'
+
