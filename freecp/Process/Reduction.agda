@@ -1,4 +1,6 @@
 {-# OPTIONS --rewriting --guardedness #-}
+module Process.Reduction where
+
 open import Data.Sum using (inj₁; inj₂)
 open import Data.Product using (_,_)
 open import Data.Fin using (Fin)
@@ -9,14 +11,14 @@ open import Data.List.Properties using (++-assoc)
 open import Relation.Unary hiding (_∈_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
-open import Type
+open import Type.Base
 open import Type.Transitions
 open import Type.Substitution
 open import Type.Equivalence
-open import Context
-open import Permutations
-open import Process
-open import Congruence
+open import Context.Base
+open import Context.Permutations
+open import Process.Base
+open import Process.Congruence
 
 data _⊢_↝_ {n Σ Γ} (ℙ : Def Σ) : ∀{Δ μ ν} → Proc {n} Σ μ Γ → Proc Σ ν Δ → Set where
   r-call      : ∀{T} (x : T ∈ Σ) (σ : Substitution (T .ProcType.n) n) →

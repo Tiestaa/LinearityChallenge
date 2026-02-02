@@ -1,4 +1,6 @@
 {-# OPTIONS --rewriting --guardedness #-}
+module Process.Congruence where
+
 open import Data.Unit using (tt)
 open import Data.Sum using (inj₁; inj₂)
 open import Data.Product using (_,_)
@@ -7,11 +9,11 @@ import Data.Nat.Properties as Nat using (+-comm; +-assoc)
 open import Data.List.Base using ([]; _∷_; [_])
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; cong₂)
 
-open import Type
+open import Type.Base
 open import Type.Equivalence
-open import Context
-open import Permutations
-open import Process
+open import Context.Base
+open import Context.Permutations
+open import Process.Base
 
 ugly-assoc : (a b c d : ℕ) → a ≡ c + d → a + b ≡ (c + b) + d
 ugly-assoc a b c d refl

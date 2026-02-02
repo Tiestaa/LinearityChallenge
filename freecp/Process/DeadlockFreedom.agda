@@ -1,4 +1,6 @@
 {-# OPTIONS --rewriting --guardedness #-}
+module Process.DeadlockFreedom where
+
 open import Data.Unit using (tt)
 open import Data.Sum
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax; Σ-syntax)
@@ -7,12 +9,12 @@ open import Data.List.Base using ([]; _∷_; [_])
 open import Relation.Nullary using (¬_; contradiction)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
-open import Type
+open import Type.Base
 open import Type.Equivalence
-open import Context
-open import Process hiding (_∈_)
-open import Reduction
-open import Congruence
+open import Context.Base
+open import Process.Base hiding (_∈_)
+open import Process.Congruence
+open import Process.Reduction
 
 data Link {n Σ} : ∀{μ Γ} → Proc {n} Σ μ Γ → Set where
   link : ∀{Γ A B μ} (eq : dual A ≈ B) (p : Γ ≃ [ A ] + [ B ]) → Link (link {μ = μ} eq (ch ⟨ p ⟩ ch))

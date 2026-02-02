@@ -7,7 +7,7 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_; contradiction; contraposition)
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl; cong; cong₂)
 
-open import Type
+open import Type.Base
 open import Type.Unfolding
 open import Type.Substitution
 

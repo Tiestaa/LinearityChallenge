@@ -1,12 +1,14 @@
 {-# OPTIONS --rewriting --guardedness #-}
+module Context.Permutations where
+
 open import Data.Fin using (Fin)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Data.List.Base using (List; []; _∷_; [_]; _++_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
-open import Type
+open import Type.Base
 open import Type.Substitution
-open import Context
+open import Context.Base
 
 data _↭_ {n} : Context n → Context n → Set where
   refl   : ∀{Γ} → Γ ↭ Γ

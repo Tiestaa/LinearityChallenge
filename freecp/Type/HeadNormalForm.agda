@@ -9,7 +9,7 @@ open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; ref
 open import Agda.Builtin.Equality.Rewrite
 
 open import Axioms
-open import Type
+open import Type.Base
 open import Type.Equality
 open import Type.Unfolding
 open import Type.Equivalence
@@ -103,25 +103,25 @@ nf-invisible : ∀{n} {A : Type n} → ¬ Visible A → A ≈ void
 nf-invisible nv .to σ .Sim.next tr = contradiction (visible σ tr) nv
 nf-invisible nv .from σ .Sim.next tr = contradiction tr void-no-transitions
 
-visible-decidable-visible : ∀{n} (A : Type n) → kind A ≢ ∗ → Visible A
-visible-decidable-visible A ne with kind-sound A ne
+decide-visible : ∀{n} (A : Type n) → kind A ≢ ∗ → Visible A
+decide-visible A ne with kind-sound A ne
 ... | σ , ℓ , B , tr = visible σ tr
 
-visible-decidable-invisible : ∀{n} (A : Type n) → kind A ≡ ∗ → ¬ Visible A
-visible-decidable-invisible {n} A eq (visible {m} σ tr) with transition-subst {n = 0} action-subst tr
+decide-invisible : ∀{n} (A : Type n) → kind A ≡ ∗ → ¬ Visible A
+decide-invisible {n} A eq (visible {m} σ tr) with transition-subst {n = 0} action-subst tr
 ... | tr' rewrite subst-compose {n} {m} {0} σ action-subst A with kind-complete A (action-subst · σ) tr'
 ... | ne = ne eq
 
-ast-or-not : ∀{n} (k : Kind n) → k ≡ ∗ ⊎ k ≢ ∗
-ast-or-not ε = inj₂ (λ ())
-ast-or-not • = inj₂ (λ ())
-ast-or-not ∗ = inj₁ refl
-ast-or-not (var x k) = inj₂ (λ ())
+ast-or-not-ast : ∀{n} (k : Kind n) → k ≡ ∗ ⊎ k ≢ ∗
+ast-or-not-ast ε = inj₂ (λ ())
+ast-or-not-ast • = inj₂ (λ ())
+ast-or-not-ast ∗ = inj₁ refl
+ast-or-not-ast (var x k) = inj₂ (λ ())
 
 visible-decidable : ∀{n} (A : Type n) → Visible A ⊎ ¬ Visible A
-visible-decidable A with ast-or-not (kind A)
-... | inj₁ eq = inj₂ (visible-decidable-invisible A eq)
-... | inj₂ ne = inj₁ (visible-decidable-visible A ne)
+visible-decidable A with ast-or-not-ast (kind A)
+... | inj₁ eq = inj₂ (decide-invisible A eq)
+... | inj₂ ne = inj₁ (decide-visible A ne)
 
 head-normal-form : ∀{n} (A : Type n) → ∃[ N ] HeadNormalForm N × A ≈ N
 head-normal-form A with visible-decidable A

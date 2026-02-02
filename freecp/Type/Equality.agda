@@ -13,7 +13,7 @@ open import Relation.Binary.HeterogeneousEquality as Heq using (_≅_; refl)
 open import Agda.Builtin.Equality.Rewrite
 
 open import Axioms
-open import Type
+open import Type.Base
 open import Type.Renaming
 
 data _~_ {n r s} : PreType n r → PreType n s → Set where

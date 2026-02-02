@@ -1,4 +1,6 @@
 {-# OPTIONS --rewriting --guardedness #-}
+module Process.Base where
+
 open import Function using (_∘_)
 open import Data.Unit using (tt)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -9,11 +11,11 @@ open import Data.List.Base using (List; []; _∷_; [_])
 open import Relation.Unary hiding (_∈_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
 
-open import Type
+open import Type.Base
 open import Type.Equivalence
 open import Type.Substitution
-open import Context
-open import Permutations
+open import Context.Base
+open import Context.Permutations
 
 record ProcType : Set where
   field

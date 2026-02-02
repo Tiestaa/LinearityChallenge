@@ -11,7 +11,7 @@ open import Relation.Binary.PropositionalEquality as Eq using (_≡_; refl; cong
 open import Relation.Binary.HeterogeneousEquality as Heq using (_≅_; refl)
 open import Agda.Builtin.Equality.Rewrite
 
-open import Type
+open import Type.Base
 
 Renaming : ℕ → ℕ → Set
 Renaming r s = Fin r → Fin s

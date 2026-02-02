@@ -1,7 +1,8 @@
 {-# OPTIONS --rewriting --guardedness #-}
 
 import Axioms
-import Type
+
+import Type.Base
 import Type.Renaming
 import Type.Unfolding
 import Type.Equality
@@ -10,10 +11,12 @@ import Type.Transitions
 import Type.Equivalence
 import Type.Kind
 import Type.HeadNormalForm
-import Context
-import Permutations
-import Process
-import Congruence
-import Reduction
-import DeadlockFreedom
-import Termination
+
+import Context.Base
+import Context.Permutations
+
+import Process.Base
+import Process.Congruence
+import Process.Reduction
+import Process.DeadlockFreedom
+import Process.Termination

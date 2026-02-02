@@ -1,4 +1,6 @@
 {-# OPTIONS --rewriting --guardedness #-}
+module Context.Base where
+
 open import Function using (_∘_)
 open import Data.Fin using (Fin)
 open import Data.Nat
@@ -7,7 +9,7 @@ open import Data.List.Base using (List; []; _∷_; [_]; _++_; map)
 open import Relation.Unary
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂)
 
-open import Type
+open import Type.Base
 open import Type.Substitution
 open import Type.Equivalence
 

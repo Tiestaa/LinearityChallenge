@@ -1,4 +1,6 @@
 {-# OPTIONS --rewriting --guardedness #-}
+module Process.Termination where
+
 open import Data.Sum using (inj₁; inj₂)
 open import Data.Nat using (ℕ; z≤n; s≤s; _≤_; _<_)
 import Data.Nat.Properties as Nat
@@ -6,9 +8,9 @@ open import Data.Product using (_×_; _,_; ∃; ∃-syntax; Σ-syntax)
 open import Data.Nat.Induction using (<-wellFounded)
 open import Induction.WellFounded
 
-open import Process
-open import Reduction
-open import DeadlockFreedom
+open import Process.Base
+open import Process.Reduction
+open import Process.DeadlockFreedom
 
 strong-termination : ∀{n Σ μ ν Γ Δ} (ℙ : Def Σ) {P : Proc {n} Σ μ Γ} {Q : Proc Σ ν Δ} →
                      ∃[ k ] ((reds : ℙ ⊢ P ↝* Q) → run-length ℙ reds ≤ k)

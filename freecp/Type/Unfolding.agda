@@ -12,7 +12,7 @@ open import Data.List.Base using (List; []; _∷_; [_])
 open import Relation.Nullary using (¬_; contradiction; contraposition)
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl; sym; cong; cong₂)
 
-open import Type
+open import Type.Base
 open import Type.Renaming
 
 Unfolding : ℕ → ℕ → ℕ → Set

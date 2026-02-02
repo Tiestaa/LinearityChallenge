@@ -1,4 +1,6 @@
 {-# OPTIONS --rewriting --guardedness #-}
+module Type.Base where
+
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)

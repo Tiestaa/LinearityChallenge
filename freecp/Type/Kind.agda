@@ -8,7 +8,7 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_; contradiction)
 open import Relation.Binary.PropositionalEquality as Eq using (_≡_; _≢_; refl; cong; cong₂)
 
-open import Type
+open import Type.Base
 open import Type.Renaming
 open import Type.Unfolding
 open import Type.Substitution
@@ -131,7 +131,7 @@ k-subst>> κ ε k' = refl
 k-subst>> κ • k' = refl
 k-subst>> κ ∗ k' = refl
 k-subst>> κ (var x k) k' = begin
-    (k-subst κ (var x k) >> k-subst κ k') ≡⟨ refl ⟩
+    k-subst κ (var x k) >> k-subst κ k' ≡⟨ refl ⟩
     (κ x >> k-subst κ k) >> k-subst κ k' ≡⟨ >>-assoc (κ x) (k-subst κ k) (k-subst κ k') ⟩
     κ x >> (k-subst κ k >> k-subst κ k') ≡⟨ cong (κ x >>_) (k-subst>> κ k k') ⟩
     κ x >> (k-subst κ (k >> k')) ≡⟨ refl ⟩
