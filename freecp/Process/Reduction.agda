@@ -1,8 +1,8 @@
 {-# OPTIONS --rewriting --guardedness #-}
 module Process.Reduction where
 
-open import Data.Sum using (inj₁; inj₂)
-open import Data.Product using (_,_)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import Data.Product using (_×_; _,_)
 open import Data.Fin using (Fin)
 open import Data.Nat using (ℕ; suc; _+_; _≤_; s≤s; _<_)
 import Data.Nat.Properties as Nat
@@ -72,19 +72,37 @@ data _⊢_↝_ {n Σ Γ} (ℙ : Def Σ) : ∀{Δ μ ν} → Proc {n} Σ μ Γ �
 ... | _ , _ , eq' = eq'
 ↝≈ (r-cong _ red) = ↝≈ red
 
-↝size : ∀{n Σ Γ Δ μ ν}{P : Proc {n} Σ μ Γ} {Q : Proc Σ ν Δ} {ℙ : Def Σ} → ℙ ⊢ P ↝ Q → ν < μ
-↝size (r-call x σ π) = Nat.≤-refl
-↝size (r-link {μ = μ} {ν} eq eq' p) rewrite Nat.+-comm μ ν = Nat.m≤m+n (suc ν) μ
-↝size (r-close {μ = μ} {ν} eq p p₀) rewrite Nat.+-suc μ ν = Nat.m≤m+n (suc μ) ν
-↝size (r-select-l {μ = μ} eq p p₀ q₀) = s≤s Nat.≤-refl
-↝size (r-select-r {μ = μ} eq p p₀ q₀) = s≤s Nat.≤-refl
+↝size : ∀{n Σ Γ Δ μ ν}{P : Proc {n} Σ μ Γ} {Q : Proc Σ ν Δ} {ℙ : Def Σ} → ℙ ⊢ P ↝ Q →
+  (ν < μ) ⊎ (ν ≤ μ × links Q < links P)
+↝size (r-call x σ π) = inj₁ Nat.≤-refl
+↝size (r-link {μ = μ} {ν} {P = P} eq eq' p) with +≈ p (≈trans (≈sym eq') eq ∷ [])
+... | _ , p' , eq'' rewrite ↭links (↭concat p') P = inj₂ (Nat.m≤n+m ν μ , Nat.≤-refl)
+↝size (r-close {μ = μ} {ν} eq p p₀) rewrite Nat.+-suc μ ν = inj₁ (Nat.m≤m+n (suc μ) ν)
+↝size (r-select-l eq p p₀ q₀) = inj₁ (s≤s Nat.≤-refl)
+↝size (r-select-r eq p p₀ q₀) = inj₁ (s≤s Nat.≤-refl)
 ↝size (r-fork {μ = μ} {ν} {ω} eq p p₀ q q₀)
-  rewrite Nat.+-assoc μ ν ω | Nat.+-suc μ (ν + ω) = Nat.≤-refl
-↝size (r-put {μ₂ = μ₂} {ν} {ω} eq refl p p₀ q₀)
-  rewrite Nat.+-assoc ν ω μ₂ | Nat.+-suc ν (μ₂ + ω) | Nat.+-comm ω μ₂ = Nat.≤-refl
-↝size (r-cut {ν = ν} eq eqA eqC p red) = Nat.+-monoˡ-< ν (↝size red)
-↝size (r-cong pc red) with ⊒size pc
-... | refl = ↝size red
+  rewrite Nat.+-assoc μ ν ω | Nat.+-suc μ (ν + ω) = inj₁ Nat.≤-refl
+↝size (r-put {μ₂ = μ₂} {ν} {ω} eq eq' p p₀ q₀)
+  rewrite Nat.+-assoc ν ω μ₂ | Nat.+-suc ν (μ₂ + ω) | Nat.+-comm ω μ₂ = inj₁ {!!}
+↝size (r-cut {ν = ν} {R = R} eq eqA eqC p red) with ↝size red
+... | inj₁ lt = inj₁ (Nat.+-monoˡ-< ν lt)
+... | inj₂ (le , lt) = inj₂ (Nat.+-monoˡ-≤ ν le , Nat.+-monoˡ-< (links R) lt)
+↝size (r-cong pc red) with ⊒size pc | ↝size red
+... | refl | inj₁ lt = inj₁ lt
+... | refl | inj₂ (le , lt) = inj₂ (le , {!!})
+
+-- ↝size (r-call x σ π) = Nat.≤-refl
+-- ↝size (r-link {μ = μ} {ν} eq eq' p) rewrite Nat.+-comm μ ν = Nat.m≤m+n (suc ν) μ
+-- ↝size (r-close {μ = μ} {ν} eq p p₀) rewrite Nat.+-suc μ ν = Nat.m≤m+n (suc μ) ν
+-- ↝size (r-select-l {μ = μ} eq p p₀ q₀) = s≤s Nat.≤-refl
+-- ↝size (r-select-r {μ = μ} eq p p₀ q₀) = s≤s Nat.≤-refl
+-- ↝size (r-fork {μ = μ} {ν} {ω} eq p p₀ q q₀)
+--   rewrite Nat.+-assoc μ ν ω | Nat.+-suc μ (ν + ω) = Nat.≤-refl
+-- ↝size (r-put {μ₂ = μ₂} {ν} {ω} eq refl p p₀ q₀)
+--   rewrite Nat.+-assoc ν ω μ₂ | Nat.+-suc ν (μ₂ + ω) | Nat.+-comm ω μ₂ = Nat.≤-refl
+-- ↝size (r-cut {ν = ν} eq eqA eqC p red) = Nat.+-monoˡ-< ν (↝size red)
+-- ↝size (r-cong pc red) with ⊒size pc
+-- ... | refl = ↝size red
 
 data _⊢_↝*_ {n Σ Γ} (ℙ : Def Σ) : ∀{Δ μ ν} → Proc {n} Σ μ Γ → Proc {n} Σ ν Δ → Set where
   refl  : ∀{μ} {P : Proc Σ μ Γ} → ℙ ⊢ P ↝* P

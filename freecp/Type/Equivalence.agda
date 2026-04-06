@@ -164,6 +164,22 @@ sim-cong⨟l le .Sim.next (seq⊗ tr) with le .Sim.next tr
 sim-cong⨟l le .Sim.next (seq⅋ tr) with le .Sim.next tr
 ... | _ , tr' , le' = _ , seq⅋ tr' , le'
 
+sim-cong& : ∀{n} {A A' B B' : Type n} → Sim A A' → Sim B B' → Sim (A & B) (A' & B')
+sim-cong& ale ble .Sim.next &L = _ , &L , ale
+sim-cong& ale ble .Sim.next &R = _ , &R , ble
+
+sim-cong⊕ : ∀{n} {A A' B B' : Type n} → Sim A A' → Sim B B' → Sim (A ⊕ B) (A' ⊕ B')
+sim-cong⊕ ale ble .Sim.next ⊕L = _ , ⊕L , ale
+sim-cong⊕ ale ble .Sim.next ⊕R = _ , ⊕R , ble
+
+sim-cong⅋ : ∀{n} {A A' B B' : Type n} → Sim A A' → Sim B B' → Sim (A ⅋ B) (A' ⅋ B')
+sim-cong⅋ ale ble .Sim.next ⅋L = _ , ⅋L , ale
+sim-cong⅋ ale ble .Sim.next ⅋R = _ , ⅋R , ble
+
+sim-cong⊗ : ∀{n} {A A' B B' : Type n} → Sim A A' → Sim B B' → Sim (A ⊗ B) (A' ⊗ B')
+sim-cong⊗ ale ble .Sim.next ⊗L = _ , ⊗L , ale
+sim-cong⊗ ale ble .Sim.next ⊗R = _ , ⊗R , ble
+
 sim-after : ∀{n ℓ} {A B A' B' : Type n} → Sim A B → A ⊨ ℓ ⇒ A' → B ⊨ ℓ ⇒ B' → Sim A' B'
 sim-after le p q .Sim.next tr with le .Sim.next p
 ... | _ , q' , le' rewrite deterministic q q' = le' .Sim.next tr
@@ -307,6 +323,21 @@ _≲_ {n} A B = ∀{m} (σ : Substitution n m) → Sim (subst σ A) (subst σ B)
 
 ≲after : ∀{n ℓ} {A A' B B' : Type n} → A ⊨ ℓ ⇒ A' → B ⊨ ℓ ⇒ B' → A ≲ B → A' ≲ B'
 ≲after x y le σ = sim-after (le σ) (transition-subst σ x) (transition-subst σ y)
+
+≲cong⨟ : ∀{n} {A A' B B' : Type n} → A ≲ A' → B ≲ B' → (A ⨟ B) ≲ (A' ⨟ B')
+≲cong⨟ ale ble σ = sim-cong⨟ (ale σ) (ble σ)
+
+≲cong& : ∀{n} {A A' B B' : Type n} → A ≲ A' → B ≲ B' → (A & B) ≲ (A' & B')
+≲cong& ale ble σ = sim-cong& (ale σ) (ble σ)
+
+≲cong⊕ : ∀{n} {A A' B B' : Type n} → A ≲ A' → B ≲ B' → (A ⊕ B) ≲ (A' ⊕ B')
+≲cong⊕ ale ble σ = sim-cong⊕ (ale σ) (ble σ)
+
+≲cong⅋ : ∀{n} {A A' B B' : Type n} → A ≲ A' → B ≲ B' → (A ⅋ B) ≲ (A' ⅋ B')
+≲cong⅋ ale ble σ = sim-cong⅋ (ale σ) (ble σ)
+
+≲cong⊗ : ∀{n} {A A' B B' : Type n} → A ≲ A' → B ≲ B' → (A ⊗ B) ≲ (A' ⊗ B')
+≲cong⊗ ale ble σ = sim-cong⊗ (ale σ) (ble σ)
 
 -- EQUIVALENCE
 

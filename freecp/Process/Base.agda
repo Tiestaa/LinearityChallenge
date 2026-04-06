@@ -38,7 +38,7 @@ data Ch {n} (A : Type n) : Context n → Set where
 data Proc {n} (Σ : ProcContext) : ℕ → Context n → Set where
   call     : ∀{T} → T ∈ Σ → (σ : Substitution (T .ProcType.n) n) →
              ∀[ substc σ (T .context) ↭_ ⇒ Proc Σ (suc (T .measure)) ]
-  link     : ∀{A B μ} → dual A ≈ B → ∀[ Ch A ∗ Ch B ⇒ Proc Σ (suc μ) ]
+  link     : ∀{A B μ} → dual A ≈ B → ∀[ Ch A ∗ Ch B ⇒ Proc Σ μ ]
   fail     : ∀{μ} → ∀[ Ch ⊤ ∗ U ⇒ Proc Σ μ ]
   wait     : ∀{μ} → ∀[ Ch ⊥ ∗ Proc Σ μ ⇒ Proc Σ μ ]
   close    : ∀{μ} → ∀[ Ch 𝟙 ⇒ Proc Σ (suc μ) ]
@@ -98,3 +98,36 @@ substp σ (put (ch ⟨ p ⟩ P)) = put (ch ⟨ +-subst σ p ⟩ substp σ P)
 substp σ (get eq (ch ⟨ p ⟩ P)) = get eq (ch ⟨ +-subst σ p ⟩ substp σ P)
 substp σ (cut {A} eq (P ⟨ p ⟩ Q)) with ≈subst σ eq
 ... | eq' rewrite sym (dual-subst σ A) = cut eq' (substp σ P ⟨ +-subst σ p ⟩ substp σ Q)
+
+links : ∀{n Σ μ} {Γ : Context n} → Proc Σ μ Γ → ℕ
+links (call _ _ _) = 0
+links (link _ _) = 1
+links (fail _) = 0
+links (wait (_ ⟨ _ ⟩ _)) = 0
+links (close _) = 0
+links (case (_ ⟨ _ ⟩ _)) = 0
+links (select _) = 0
+links (join _) = 0
+links (fork _) = 0
+links (put _) = 0
+links (get _ _) = 0
+links (cut _ (P ⟨ _ ⟩ Q)) = links P + links Q
+
+↭links : ∀{n} {Γ Δ : Context n} {Σ μ} (π : Γ ↭ Δ) (P : Proc Σ μ Γ) → links (↭proc π P) ≡ links P
+↭links π (call x σ x₁) = refl
+↭links π (link eq (ch ⟨ p ⟩ ch)) with ↭solo π p
+... | _ , q , π' with ↭solo-inv π'
+... | refl = refl
+↭links π (fail (ch ⟨ _ ⟩ _)) = refl
+↭links π (wait (ch ⟨ _ ⟩ P)) = refl
+↭links π (close ch) with ↭solo-inv π
+... | refl = refl
+↭links π (case (ch ⟨ x₁ ⟩ x₂)) = refl
+↭links π (select (ch ⟨ x₁ ⟩ inj₁ x)) = refl
+↭links π (select (ch ⟨ x₁ ⟩ inj₂ y)) = refl
+↭links π (join (ch ⟨ x₁ ⟩ x₂)) = refl
+↭links π (fork (ch ⟨ _ ⟩ (_ ⟨ _ ⟩ _))) = refl
+↭links π (put (ch ⟨ _ ⟩ _)) = refl
+↭links π (get refl (ch ⟨ x₁ ⟩ x₂)) = refl
+↭links π (cut x (P ⟨ p ⟩ Q)) with ↭split π p
+... | Δ₁ , Δ₂ , q , π₁ , π₂ rewrite ↭links (prep π₁) P | ↭links (prep π₂) Q = refl
