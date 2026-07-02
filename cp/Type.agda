@@ -99,6 +99,10 @@ subst {_} map (`∃ A) = `∃ (subst (exts map) A)
 subst {_} map (`! A) = `! (subst map A)
 subst {_} map (`? A) = `? (subst map A)
 
+[_/] : ∀{n} → PreType n → Fin (suc n) → PreType n
+[ A /] zero     = A
+[ A /] (suc k)  = var k
+
 
 
 {-- duality preserves substitution proof --}

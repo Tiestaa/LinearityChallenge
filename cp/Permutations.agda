@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 {-# OPTIONS --rewriting #-}
 open import Data.List.Base using (List; _∷_; []; [_])
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
@@ -51,3 +52,20 @@ data _↔_ : Context → Context → Set where
 ↔split (trans p q) s with ↔split p s
 ... | Θ₁ , Θ₂ , s` , p₁ , p₂ with ↔split q s`
 ... | Δ₁ , Δ₂ , s`` , q₁ , q₂ = Δ₁ , Δ₂ , s`` , trans p₁ q₁ , trans p₂ q₂ 
+
+
+
+↔-delete : ∀ {Γ Δ A} → Γ ↔ Δ → (i : A ∈` Γ) → (j : A ∈` Δ) → delete Γ i ↔ delete Δ j
+↔-delete = {!   !}
+-- ↔-delete refl here      here      = refl
+-- ↔-delete refl here      (there j) = ↔-delete (prep refl) here (there j)
+-- ↔-delete refl (there i) here      = ↔-delete (prep refl) (there i) here
+-- ↔-delete refl (there i) (there j) = prep (↔-delete refl i j)
+-- ↔-delete swap here      here      = prep refl
+-- ↔-delete swap here      (there j) = prep (↔-delete (prep refl) here j)
+-- ↔-delete swap (there i) here      = prep (↔-delete (prep refl) i here)
+-- ↔-delete swap (there i) (there j) = {!   !}
+-- ↔-delete (prep π) here here = π
+-- ↔-delete (prep π) here (there j) = {!   !}
+-- ↔-delete (prep π) (there i) j = {!   !}
+-- ↔-delete (trans π π₁) i j         = {!   !}
