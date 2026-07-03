@@ -8,7 +8,7 @@ open import Context
 open import Permutations
 
 data Proc : Context → Set where
-    {-- Axiom (Ax) --}
+    {-- Axiom (Ax) - Link --}
     link : ∀{A} → Proc (dual A ∷ A ∷ [])
 
     {-- Parallel Composition - Cut --}
@@ -106,5 +106,7 @@ data Proc : Context → Set where
         Proc Γ 
 
 
-↔proc : ∀{Γ Δ} → Γ ↔ Δ → Proc Γ → Proc Δ
-↔proc π γ = {!   !}
+{-- Process valid under permutations --}
+↭proc : ∀{Γ Δ} → Γ ↭ Δ → Proc Γ → Proc Δ
+↭proc = {!   !}
+

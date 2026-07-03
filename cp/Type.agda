@@ -4,7 +4,6 @@ open import Data.Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂)
 open import Agda.Builtin.Equality.Rewrite
 
-{-- Using de Bruijn notation --}
 data PreType : ℕ → Set where
     ⊤ 𝟘 ⊥ 𝟙         : ∀{n} → PreType n
     var rav         : ∀{n} → Fin n → PreType n
@@ -13,7 +12,6 @@ data PreType : ℕ → Set where
     `! `?           : ∀{n} → PreType n → PreType n
 
 
-{-- Define the dual --}
 dual : ∀{n} → PreType n → PreType n
 dual ⊤      = 𝟘
 dual 𝟘      = ⊤
@@ -104,8 +102,7 @@ subst {_} map (`? A) = `? (subst map A)
 [ A /] (suc k)  = var k
 
 
-
-{-- duality preserves substitution proof --}
+{-- duality preserves substitution - proof --}
 dual-subst : ∀{m n} {map : Fin m → PreType n} {A : PreType m} → subst map (dual A) ≡ dual (subst map A) 
 dual-subst {_} {_} {map} {⊤} = refl
 dual-subst {_} {_} {map} {𝟘} = refl
@@ -124,6 +121,5 @@ dual-subst {_} {_} {map} {`? A} = cong `! (dual-subst {map = map} {A = A})
 
 {-# REWRITE dual-subst #-}
 
-{-- Define Type --}
 Type : Set
 Type = PreType zero

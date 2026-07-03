@@ -35,7 +35,6 @@ data _≃_+_ : Context → Context → Context → Set where
     >_ : ∀{A Γ Δ Θ} → Γ ≃ Δ + Θ → A ∷ Γ ≃ Δ + A ∷ Θ
 
 
-
 {-- splitting commutativity --}
 +-comm : ∀{Γ Δ Θ} → Γ ≃ Δ + Θ → Γ ≃ Θ + Δ 
 +-comm •     = •
@@ -59,7 +58,6 @@ data _≃_+_ : Context → Context → Context → Set where
 ... | _ , p` , q` = _ , +-comm p` , +-comm q`
 
 
-{-- Utils --}
 ≫ : ∀{Γ} → Γ ≃ [] + Γ
 ≫ {[]}    = •
 ≫ {_ ∷ Γ} = > ≫
@@ -67,12 +65,11 @@ data _≃_+_ : Context → Context → Context → Set where
 ≪ : ∀{Γ} → Γ ≃ Γ + []
 ≪ = +-comm ≫
 
-{-- empty left --}
+
 +-empty-l : ∀{Γ Δ} → Γ ≃ [] + Δ → Γ ≡ Δ 
 +-empty-l •     = refl
 +-empty-l (> p) = cong (_ ∷_) (+-empty-l p)
 
-{-- empty right --}
 +-empty-r : ∀{Γ Δ} → Γ ≃ Δ + [] → Γ ≡ Δ 
 +-empty-r •     = refl
 +-empty-r (< p) = cong (_ ∷_) (+-empty-r p)
