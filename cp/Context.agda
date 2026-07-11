@@ -12,28 +12,21 @@ Context = List Type
 
 infix  4 _≃_+_
 
-{-- Getter --}
-data _∈`_ (A : Type) : Context -> Set where
-    here : ∀{Γ} → A ∈` (A ∷ Γ)
-    there : ∀{B Γ} → A ∈` Γ → A ∈` (B ∷ Γ)
+{-- Update - quaternary relation --}
+data Update : Context → Type → Type → Context → Set where
+  here : ∀{Γ A B} → Update (A ∷ Γ) A B (B ∷ Γ)
+  next : ∀{Γ Δ A B C} → Update Γ A B Δ → Update (C ∷ Γ) A B (C ∷ Δ)
 
-{-- Setter --}
-update : ∀{A} (Γ : Context) (B : Type) → A ∈` Γ → Context
-update (_ ∷ Γ) B here      = B ∷ Γ
-update (x ∷ Γ) B (there i) = x ∷ update Γ B i
-
-{-- Deleter --}
-delete : ∀{A} (Γ : Context) → A ∈` Γ → Context
-delete (x ∷ Γ) here      = Γ
-delete (x ∷ Γ) (there p) = x ∷ delete Γ p
-
+{-- Delete - ternary relation --}
+data Delete : Context → Type → Context → Set where
+  here : ∀{Γ A} → Delete (A ∷ Γ) A Γ
+  next : ∀{Γ Δ A C} → Delete Γ A Δ → Delete (C ∷ Γ) A (C ∷ Δ)
 
 {-- Context splitting --}
 data _≃_+_ : Context → Context → Context → Set where
     • : [] ≃ [] + []  
     <_ : ∀{A Γ Δ Θ} → Γ ≃ Δ + Θ → A ∷ Γ ≃ A ∷ Δ + Θ
     >_ : ∀{A Γ Δ Θ} → Γ ≃ Δ + Θ → A ∷ Γ ≃ Δ + A ∷ Θ
-
 
 {-- splitting commutativity --}
 +-comm : ∀{Γ Δ Θ} → Γ ≃ Δ + Θ → Γ ≃ Θ + Δ 
@@ -74,58 +67,52 @@ data _≃_+_ : Context → Context → Context → Set where
 +-empty-r •     = refl
 +-empty-r (< p) = cong (_ ∷_) (+-empty-r p)
 
+{-- Update preserve length --}
+update-lp : ∀{Γ Δ A B} → Update Γ A B Δ → length Γ ≡ length Δ
+update-lp here      = refl
+update-lp (next up) = cong suc (update-lp up)
 
-{-- Setter length preservation --}
-update-lp : ∀{Γ A} (B : Type) (i : A ∈` Γ) → length Γ ≡ length (update Γ B i)
-update-lp _ here      = refl
-update-lp _ (there i) = cong suc (update-lp _ i)
+{-- Locality of Left Update --}
+≃-update-l : ∀{Γ Δ Θ Δ` A B} → Γ ≃ Δ + Θ → Update Δ A B Δ` → ∃[ Γ` ] Γ` ≃ Δ` + Θ × Update Γ A B Γ`
+≃-update-l (< σ)    here  = _ , (< σ) , here
+≃-update-l (> σ)    here  with ≃-update-l σ here
+... | _ , σ` , U  = _ , (> σ`) , next U
+≃-update-l (< σ) (next U) with ≃-update-l σ U
+... | _ , σ` , U` = _ , (< σ`) , next U` 
+≃-update-l (> σ) (next U) with ≃-update-l σ (next U)
+... | _ , σ` , U` = _ , (> σ`) , next U` 
 
-{-- Setter position validity --}
-update-valid : ∀{Γ A B} (i : A ∈` Γ) → B ∈` (update Γ B i)
-update-valid here      = here
-update-valid (there i) = there (update-valid i)
+{-- Locality of Right Update --}
+≃-update-r : ∀{Γ Δ Θ Θ` A B} → Γ ≃ Δ + Θ → Update Θ A B Θ` → ∃[ Γ` ] Γ` ≃ Δ + Θ` × Update Γ A B Γ`
+≃-update-r σ U with ≃-update-l (+-comm σ) U
+... | _ , σ` , U`  = _ , +-comm σ` , U`
 
-{-- Locality of update left --}
-≃-update-l : ∀{Γ Δ Θ A B} (i : A ∈` Δ) → Γ ≃ Δ + Θ → ∃[ Γ` ] Γ` ≃ (update Δ B i ) + Θ
-≃-update-l here (< s)  = _ , (< s)
-≃-update-l here (> s) with ≃-update-l here s
-... | _ , p = _ , (> p)
-≃-update-l (there i) (< s) with ≃-update-l i s
-... | _ , p = _ , (< p)
-≃-update-l (there i) (> s) with ≃-update-l (there i) s
-... | _ , p = _ , (> p)
+{-- lift from left split to global --}
+lift-l : ∀{Γ Δ Δ` Θ A B} → Γ ≃ Δ + Θ → Update Δ A B Δ` → ∃[ Γ` ] Γ` ≃ Δ` + Θ × Update Γ A B Γ`
+lift-l (< σ) here      = _ , (< σ) , here
+lift-l (< σ) (next U`) with lift-l σ U`
+... | _ , σ` , U``     = _ , (< σ`) , next U``
+lift-l (> σ) here      with lift-l σ here
+... | _ , σ` , U`      = _ , (> σ`) , next U` 
+lift-l (> σ) (next U`) with lift-l σ (next U`)
+... | _ , σ` , U``     = _ , (> σ`) , next U``
 
-{-- Locality of update left --}
-≃-update-r : ∀{Γ Δ Θ A B} (i : A ∈` Θ) → Γ ≃ Δ + Θ → ∃[ Γ` ] Γ` ≃ Δ + (update Θ B i)
-≃-update-r i s with ≃-update-l i (+-comm s)
-... | _ , p = _ , +-comm p
+{-- lift from right split to global --}
+lift-r : ∀{Γ Δ Θ Θ` A B} → Γ ≃ Δ + Θ → Update Θ A B Θ` → ∃[ Γ` ] Γ` ≃ Δ + Θ` × Update Γ A B Γ`
+lift-r σ U with lift-l (+-comm σ) U
+... | _ , σ` , U` = _ , +-comm σ` , U` 
 
-{-- lift idx from split to global--}
-lift-l : ∀{Γ Δ Θ A} → Γ ≃ Δ + Θ → A ∈` Δ → A ∈` Γ
-lift-l (< s) here  = here
-lift-l (> s) here  = there (lift-l s here)
-lift-l (< s) (there p) = there (lift-l s p)
-lift-l (> s) (there p) = there (lift-l s (there p))
-
-lift-r : ∀{Γ Δ Θ A} → Γ ≃ Δ + Θ → A ∈` Θ → A ∈` Γ
-lift-r p i = lift-l (+-comm p) i
 
 {-- delete preserves splitting --}
-≃-delete-l : ∀{Γ Δ Θ A} (i : A ∈` Δ) → (p : Γ ≃ Δ + Θ) → delete Γ (lift-l p i) ≃ delete Δ i + Θ
-≃-delete-l here (< p)      = p
-≃-delete-l here (> p)      = > (≃-delete-l here p)
-≃-delete-l (there i) (< p) = < (≃-delete-l i p)
-≃-delete-l (there i) (> p) = > (≃-delete-l (there i) p)
+≃-delete-l : ∀{ Γ Δ Δ` Θ A} → Γ ≃ Δ + Θ → Delete Δ A Δ` → ∃[ Γ` ] Γ` ≃ Δ` + Θ × Delete Γ A Γ`
+≃-delete-l (< σ) here      = _ , σ , here
+≃-delete-l (< σ) (next U`) with ≃-delete-l σ U`
+... | c , σ` , U``         = _ , (< σ`) , next U``
+≃-delete-l (> σ) here with ≃-delete-l σ here
+... | _ , σ` , U`          = _ , (> σ`) , next U`
+≃-delete-l (> σ) (next U`) with ≃-delete-l σ (next U`)
+... | _ , σ` , U``         = _ , (> σ`) , next U``
 
-≃-delete-r : ∀{Γ Δ Θ A} (i : A ∈` Θ) → (p : Γ ≃ Δ + Θ) → delete Γ (lift-r p i) ≃ Δ + delete Θ i
-≃-delete-r i p =  +-comm (≃-delete-l i (+-comm p))
-
-{-- Unrestricted contexts --}
-data Un : Context → Set where
-    un-[] : Un []
-    un-∷  : ∀{Γ A} → Un Γ → Un (`? A ∷ Γ)
-
-{-- un context remain un after deleting --}
-Un-delete : ∀{Γ A} (i : A ∈` Γ) → Un Γ → Un (delete Γ i)
-Un-delete here      (un-∷ u) = u
-Un-delete (there i) (un-∷ u) = un-∷ (Un-delete i u)
+≃-delete-r : ∀{ Γ Δ Θ Θ` A} → Γ ≃ Δ + Θ → Delete Θ A Θ` → ∃[ Γ` ] Γ` ≃ Δ + Θ` × Delete Γ A Γ`
+≃-delete-r σ D with ≃-delete-l (+-comm σ) D
+... | _ , σ` , D` = _ , +-comm σ` , D`
