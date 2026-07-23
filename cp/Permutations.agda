@@ -1,5 +1,5 @@
 {-# OPTIONS --rewriting #-}
-open import Data.List.Base using (List; _∷_; []; [_])
+open import Data.List.Base using (List; _∷_; []; [_]; _++_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -100,3 +100,12 @@ data _↭_ : Context → Context → Set where
 ↭solo-eq (trans π π`) refl with ↭solo-eq π refl
 ... | refl with ↭solo-eq π` refl
 ... | refl                 = refl
+
+↭shift : ∀{A Γ Δ} → (Γ ++ A ∷ Δ) ↭ (A ∷ Γ ++ Δ)
+↭shift {_} {[]} = refl
+↭shift {_} {_ ∷ _} = trans (prep ↭shift) swap
+
+↭concat : ∀{Γ Γ₁ Γ₂} → Γ ≃ Γ₁ + Γ₂ → (Γ₁ ++ Γ₂) ↭ Γ
+↭concat •     = refl
+↭concat (< σ) = prep (↭concat σ)
+↭concat (> σ) = trans ↭shift (prep (↭concat σ))

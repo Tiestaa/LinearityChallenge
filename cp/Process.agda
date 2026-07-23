@@ -89,8 +89,7 @@ data Proc : Context → Set where
 ↭proc π (case U U₁ P P₁) with ↭-update π U
 ... | Δ₁ , U₂ , π₁ with ↭-update π U₁
 ... | Δ₂ , U₃ , π₂ = case U₂ U₃ (↭proc π₁ P) (↭proc π₂ P₁)
-↭proc π (close E) with ↭solo-eq π E
-... | π` = close π`
+↭proc π (close E) = close (↭solo-eq π E)
 ↭proc π (wait D P) with ↭-delete π D
 ... | c , D , π`  = wait D (↭proc π` P)
 ↭proc π (fail D) with ↭-delete π D
