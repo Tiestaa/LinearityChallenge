@@ -17,7 +17,7 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         (σ : Γ ≃ Γ₁ + Γ₂) →
             cut σ P Q ⊒ cut (+-comm σ) Q P 
 
-    {-- s-link is useless, link is an axiom and can be used ↭proc swap --}
+    {-- link is an axiom, so s-link cannot exist --}
 
     s-fail :
         ∀{Γ₁ Γ₂ Δ P} 
