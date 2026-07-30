@@ -16,37 +16,35 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         {Q : Proc (dual A ∷ Γ₂)} 
         (σ : Γ ≃ Γ₁ + Γ₂) →
             cut σ P Q ⊒ cut (+-comm σ) Q P 
-
-    {-- link is an axiom, so s-link cannot exist --}
-
+            
     s-fail :
         ∀{Γ₁ Γ₂ Δ P} 
         (σ  : Γ ≃ Γ₁ + Γ₂)  → 
-        (D : Delete Γ₁ ⊤ Δ) →
+        (D : Update ⊤ [] Γ₁ Δ) →
         let 
-            _ , _ , D₁ = ≃-delete-l σ D
+            _ , _ , D₁ = ≃-update-l σ D
         in
         cut σ (fail here) P ⊒ fail D₁
-
+    
     s-wait :
         ∀{Γ₁ Γ₂ Δ₁ A}            →
         {P : Proc (A ∷ Δ₁)}      →
         {Q : Proc (dual A ∷ Γ₂)} → 
         (σ : Γ ≃ Γ₁ + Γ₂)        →
-        (D : Delete Γ₁ ⊥ Δ₁)     →
+        (D : Update (⊥) [] Γ₁ Δ₁)     →
         let
-            _ , σ₁ , D₁ = ≃-delete-l σ D
+            _ , σ₁ , D₁ = ≃-update-l σ D
         in
         cut σ (wait (next D) P) Q ⊒ wait D₁ (cut σ₁ P Q)
-    
+
     s-case : 
         ∀{Γ₁ Γ₂ Δ₁ Δ₂ A B C}          →
         {P : Proc (A ∷ Δ₁)}           →
         {Q : Proc (A ∷ Δ₂)}           →
         {R : Proc (dual A ∷ Γ₂)}      →
         (σ : Γ ≃ Γ₁ + Γ₂)             →
-        (U₁ : Update Γ₁ (B & C) B Δ₁) →
-        (U₂ : Update Γ₁ (B & C) C Δ₂) →
+        (U₁ : Update (B & C) [ B ] Γ₁ Δ₁) →
+        (U₂ : Update (B & C) [ C ] Γ₁ Δ₂) →
         let 
             _ , σ₁ , U₃ = ≃-update-l σ U₁
             _ , σ₂ , U₄ = ≃-update-l σ U₂
@@ -58,7 +56,7 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         {P : Proc (A ∷ Δ₁)}          →
         {Q : Proc (dual A ∷ Γ₂)}     → 
         (σ : Γ ≃ Γ₁ + Γ₂)            →
-        (U : Update Γ₁ (A ⊕ B) A Δ₁) →
+        (U : Update (A ⊕ B) [ A ] Γ₁ Δ₁) →
         let 
             _ , σ₁ , U₁ = ≃-update-l σ U 
         in
@@ -69,7 +67,7 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         {P : Proc (A ∷ Δ₁)}          →
         {Q : Proc (dual A ∷ Γ₂)}     → 
         (σ : Γ ≃ Γ₁ + Γ₂)            →
-        (U : Update Γ₁ (A ⊕ B) B Δ₁) →
+        (U : Update (A ⊕ B) [ B ] Γ₁ Δ₁) →
         let 
             _ , σ₁ , U₁ = ≃-update-l σ U 
         in
@@ -80,11 +78,12 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         {P : Proc (A ∷ C ∷ Δ₁)}      →
         {Q : Proc (dual C ∷ Γ₂)}     → 
         (σ : Γ ≃ Γ₁ + Γ₂)            →
-        (U : Update Γ₁ (A ⅋ B) B Δ₁) →
+        (U : Update (A ⅋ B) [ B ] Γ₁ Δ₁) →
         let 
             _ , σ₁ , U₁ = ≃-update-l σ U 
         in
         cut σ (join (next U) P) Q ⊒ join U₁ (cut (< σ₁) (↭proc swap P) Q)
+
 
     s-fork-l :
         ∀{Δ Θ Θ₁ Θ₂ Θ₃ A B C}        →
@@ -93,12 +92,12 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         {R : Proc Θ₃}                → 
         (σ  : Γ ≃ Δ  + Θ )           →
         (σ₁ : Θ ≃ Θ₁ + Θ₂)           → 
-        (U : Update Θ₂ (A ⊗ B) B Θ₃) →
+        (U : Update (A ⊗ B) [ B ] Θ₂ Θ₃) →
         let 
             δ₁ , σ₃ , σ₄ = +-assoc-r σ σ₁
         in
         cut σ P (fork (< σ₁) U (↭proc swap Q) R) ⊒ fork σ₄ U (cut (> σ₃) P Q) R
-        
+
     s-fork-r :
         ∀{Δ Θ Θ₁ Θ₂ Θ₃ A B C}        →
         {P : Proc (C ∷ Δ)}           →
@@ -106,7 +105,7 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         {R : Proc (dual C ∷ Θ₃)}     → 
         (σ  : Γ ≃ Δ  + Θ )           →
         (σ₁ : Θ ≃ Θ₁ + Θ₂)           → 
-        (U : Update Θ₂ (A ⊗ B) B Θ₃) →
+        (U : Update (A ⊗ B) [ B ] Θ₂ Θ₃) →
         let 
             δ  , σ₃ , σ₄ = +-assoc-r σ (+-comm σ₁ )
             δ₁ , σ₅ , U₁ = ≃-update-r σ₃ U

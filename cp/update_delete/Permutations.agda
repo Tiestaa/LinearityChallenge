@@ -44,7 +44,6 @@ data _↭_ : Context → Context → Set where
 ... | inj₁ refl        = inj₂ refl
 ... | inj₂ refl        = inj₁ refl
 
-{-- split and permutations relation --}
 ↭split : ∀{Γ Γ₁ Γ₂ Δ} → Γ ↭ Δ → Γ ≃ Γ₁ + Γ₂ → ∃[ Δ₁ ] ∃[ Δ₂ ] ( Δ ≃ Δ₁ + Δ₂ × Γ₁ ↭ Δ₁ × Γ₂ ↭ Δ₂ )
 ↭split refl     •            = _ , _ , • , refl , refl
 ↭split refl     (< s)        = _ , _ , < s , prep refl , refl
@@ -61,13 +60,7 @@ data _↭_ : Context → Context → Set where
 ... | Θ₁ , Θ₂ , s₁ , p₁ , p₂ with ↭split q s₁
 ... | Δ₁ , Δ₂ , s₂ , q₁ , q₂ = Δ₁ , Δ₂ , s₂ , trans p₁ q₁ , trans p₂ q₂ 
 
-↭solo : ∀{A Γ Γ` Δ}→ Γ ↭ Δ → Γ ≃ [ A ] + Γ` → ∃[ Δ` ] (Δ ≃ [ A ] + Δ` × Γ` ↭ Δ`)
-↭solo π s with ↭split π s
-... | _ , _ , s₁ , π₁ , π₂ with ↭solo-inv π₁
-... | refl = _ , s₁ , π₂
-
-{-- update and permutations relation --}
-↭-update : ∀{Γ Γ' A B Δ} → Γ ↭ Γ' → Update Γ A B Δ → ∃[ Δ' ] Update Γ' A B Δ' × Δ ↭ Δ'
+↭-update : ∀{Γ Γ' A B Δ} → Γ ↭ Γ' → Update A B Γ Δ → ∃[ Δ' ] Update A B Γ' Δ' × Δ ↭ Δ'
 ↭-update refl     U               = _ , U , refl
 ↭-update swap     here            = _ , next here , swap
 ↭-update swap     (next here)     = _ , here , swap
@@ -79,8 +72,7 @@ data _↭_ : Context → Context → Set where
 ... | _ , U₁ , π₂ with ↭-update π₁ U₁
 ... | _ , U₂ , π₃                 = _ , U₂ , trans π₂ π₃
 
-{--  delete from permutations preserve permutation --}
-↭-delete : ∀{ Γ Γ` Δ A} → Γ ↭ Δ → Delete Γ A Γ` → ∃[ Δ` ] Delete Δ A Δ` × Γ` ↭ Δ`
+↭-delete : ∀{ Γ Γ` Δ A} → Γ ↭ Δ → Delete A Γ Γ` → ∃[ Δ` ] Delete A Δ Δ` × Γ` ↭ Δ`
 ↭-delete refl     here            = _ , here , refl
 ↭-delete refl     (next D)        = _ , next D , refl
 ↭-delete swap     here            = _ , next here , refl
