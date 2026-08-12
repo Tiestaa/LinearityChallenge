@@ -24,7 +24,7 @@ data _↝_ {Γ} : Proc Γ → Proc Γ → Set where
         ∀{Θ}             →
         (σ : Γ ≃ [] + Θ) → 
         (P : Proc Θ)     →
-        cut {A = 𝟙} σ (close refl) (wait here P) ↝ ↭proc (↭concat σ) P
+        cut {A = 𝟙} σ close (wait here P) ↝ ↭proc (↭concat σ) P
 
     r-select-l : 
         ∀{Δ Θ A B}
