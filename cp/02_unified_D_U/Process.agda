@@ -16,7 +16,6 @@ data Proc : Context → Set where
     select-l : ∀{ Γ Δ A B} → Update (A ⊕ B) [ A ] Γ Δ → Proc Δ → Proc Γ
     select-r : ∀{ Γ Δ A B} → Update (A ⊕ B) [ B ] Γ Δ → Proc Δ → Proc Γ
     case : ∀{Γ A B Δ Δ`} → Update (A & B) [ A ] Γ Δ → Update (A & B) [ B ] Γ Δ` → Proc Δ → Proc Δ` → Proc Γ
-    -- case : ∀{Γ A B Δ Δ`} → Update (A & B) [] Γ Δ → Proc (A ∷ Δ) → Proc (B ∷ Δ) → Proc Γ
     close :  Proc [ 𝟙 ]
     wait : ∀{Γ Δ} → Update (⊥) [] Γ Δ → Proc Δ → Proc Γ
     fail : ∀{Γ Δ} → Update (⊤) [] Γ Δ → Proc Γ

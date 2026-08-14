@@ -76,7 +76,7 @@ case→thread : ∀{Γ A B Δ Δ` P Q} → (U : Update (A & B) [ A ] Γ Δ) → 
 case→thread here here = input (case _ _)
 case→thread here (next U`) = {!   !}
 case→thread (next U) here = {!   !}
-case→thread (next U) (next U`) = delayed ?
+case→thread (next U) (next U`) = delayed {!   !}
 
 wait→thread : ∀{Γ Δ P} → (U : Update (⊥) [] Γ Δ) → Thread (wait U P)
 wait→thread here     = input wait
