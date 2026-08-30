@@ -23,7 +23,7 @@ weakening Un σ P = ↭proc (↭concat σ) (weakening-lemma Un P)
 contraction-lemma :  ∀{Γ₁ Γ₂} → Un Γ₁ → Proc (Γ₁ ++ Γ₁ ++ Γ₂) → Proc (Γ₁ ++ Γ₂)
 contraction-lemma                  un-[]     P = P
 contraction-lemma {`? A ∷ Γ₁} {Γ₂} (un-∷ un) P with ↭proc (↭shift {`? A} {`? A ∷ Γ₁} {Γ₁ ++ Γ₂}) P
-... | P₁ with contract here P₁ 
+... | P₁ with contract here here P₁ 
 ... | P₂ rewrite sym (++-assoc (`? A ∷ Γ₁) Γ₁ Γ₂) with ↭proc (↭sym (↭shift {`? A} {Γ₁ ++ Γ₁})) P₂
 ... | P₃ rewrite ++-assoc Γ₁ Γ₁ (`? A ∷ Γ₂) with contraction-lemma un P₃
 ... | P₄ = ↭proc ↭shift P₄
@@ -31,8 +31,8 @@ contraction-lemma {`? A ∷ Γ₁} {Γ₂} (un-∷ un) P with ↭proc (↭shift 
 contraction : ∀{Γ Γ₁ Γ₂} (un : Un Γ₁) → Γ ≃ Γ₁ + Γ₂ → Proc (Γ₁ ++ Γ) → Proc Γ
 contraction Un σ P  = ↭proc (↭concat σ) (contraction-lemma Un (↭proc (↭left (↭sym (↭concat σ))) P))
 
-data _↝_ {Γ} : Proc Γ → Proc Γ → Set where
 
+data _↝_ {Γ} : Proc Γ → Proc Γ → Set where
     r-link :
         ∀{Δ A P}                 →
         (σ : Γ ≃ [ dual A ] + Δ) →
@@ -78,8 +78,8 @@ data _↝_ {Γ} : Proc Γ → Proc Γ → Set where
         (σ  : Γ ≃ Δ  + Θ)        →          
         (P : Proc (A ∷ Δ))       → 
         (Q : Proc (dual A ∷ Θ))  → 
-        (Un : Un Θ)              → 
-        cut {A = (`? A)} σ (client here P) (server here Un Q) ↝  cut σ P Q
+        (un : Un Θ)              → 
+        cut {A = (`? A)} σ (client here P) (server here un here Q) ↝  cut σ P Q
 
 
     r-weaken : 
@@ -87,25 +87,19 @@ data _↝_ {Γ} : Proc Γ → Proc Γ → Set where
         (σ  : Γ ≃ Δ  + Θ)        → 
         (P : Proc Δ)       → 
         (Q : Proc (dual A ∷ Θ))  → 
-        (Un : Un Θ)              → 
-        cut {A = (`? A)} σ (weaken here P) (server here Un Q) ↝ 
-        weakening Un (+-comm σ) P
+        (un : Un Θ)              → 
+        cut {A = (`? A)} σ (weaken here P) (server here un here Q) ↝ 
+        weakening un (+-comm σ) P
 
-
-    r-contract : ∀{Δ Θ A}                 →
+    r-contract :
+        ∀{ Δ Δ₁ Θ A m}                 →
         (σ  : Γ ≃ Δ  + Θ)        →          
-        (P : Proc (`? A ∷ `? A ∷ Δ))       → 
+        (P : Proc Δ₁)       → 
         (Q : Proc (dual A ∷ Θ))  → 
-        (Un : Un Θ)              → 
-        cut {A = (`? A)} σ (contract here P) (server here Un Q) ↝  
-        contraction Un (+-comm σ) (cut (++-≃-l _ σ) (cut  (< ++-≃) P (server here Un Q)) (server here Un Q))
-
-    r-exists : ∀{Δ Θ A B} → 
-        (σ : Γ ≃ Δ + Θ) →
-        (P : Proc (subst [ B /] A ∷ Δ)) →
-        (Q : (x : Type) → Proc (subst [ x /] (dual A) ∷ Θ)) →
-        cut {A = (`∃ A)} σ (ex B here P) (all λ x → _ , _ , here , Q x) ↝ 
-        cut σ P (Q _)
+        (U : Update ( `? A ) [] m Δ₁ (`? A ∷ Δ)) →
+        (un : Un Θ)              →   
+        cut {A = (`? A)} σ (contract U here P) (server here un here Q) ↝ 
+        contraction un (+-comm σ) (cut (++-≃-l _ σ) (cut (< ++-≃) (↭proc (↭-pull-contract U) P) (server here un here Q)) (server here un here Q))
 
     r-cut : 
         ∀{Δ Θ A Q}              →
@@ -116,3 +110,10 @@ data _↝_ {Γ} : Proc Γ → Proc Γ → Set where
         cut σ P R ↝ cut σ Q R
     
     r-cong : ∀{P R Q} → P ⊒ R → R ↝ Q → P ↝ Q
+
+        -- r-exists : ∀{Δ Θ A B} → 
+    --     (σ : Γ ≃ Δ + Θ) →
+    --     (P : Proc (subst [ B /] A ∷ Δ)) →
+    --     (Q : (x : Type) → Proc (subst [ x /] (dual A) ∷ Θ)) →
+    --     cut {A = (`∃ A)} σ (ex B here P) (all λ x → _ , _ , here , Q x) ↝ 
+    --     cut σ P (Q _)

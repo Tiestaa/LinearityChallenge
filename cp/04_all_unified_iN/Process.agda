@@ -19,12 +19,12 @@ data Proc : Context → Set where
     close    :  Proc [ 𝟙 ]
     wait     : ∀{Γ Δ n} → Update (⊥) [] n Γ Δ → Proc Δ → Proc Γ
     fail     : ∀{Γ Δ n} → Update (⊤) [] n Γ Δ → Proc Γ
-    all      : ∀{Γ A} → (∀(B : Type) → ∃[ m ] ∃[ Δ ] (Update ( `∀ A ) [ subst [ B /] A ] m Γ Δ × Proc Δ)) → Proc Γ
-    ex       : ∀{Γ Δ A n} → (B : Type) → Update ( `∃ A ) [ subst [ B /] A ] n Γ Δ → Proc Δ → Proc Γ
-    server   : ∀{Γ Δ A n} → Update ( `! A ) [] n Γ Δ → Un Δ → Proc (A ∷ Δ) → Proc Γ
+    -- all      : ∀{Γ A} → (∀(B : Type) → ∃[ m ] ∃[ Δ ] (Update ( `∀ A ) [ subst [ B /] A ] m Γ Δ × Proc Δ)) → Proc Γ
+    -- ex       : ∀{Γ Δ A n} → (B : Type) → Update ( `∃ A ) [ subst [ B /] A ] n Γ Δ → Proc Δ → Proc Γ
+    server   : ∀{Γ Δ Θ A n} → Update ( `! A ) [] n Γ Δ → Un Δ → Update ( `! A ) [ A ] n Γ Θ → Proc Θ → Proc Γ
     client   : ∀{Γ Δ A n} → Update ( `? A ) [ A ] n Γ Δ → Proc Δ → Proc Γ
     weaken   : ∀{Γ Δ A n} → Update ( `? A ) [] n Γ Δ → Proc Δ → Proc Γ
-    contract : ∀{Γ Δ A n} → Update ( `? A ) (`? A ∷ `? A ∷ []) n Γ Δ → Proc Δ → Proc Γ
+    contract : ∀{Γ Δ A m n} → Update ( `? A ) [] m Δ Γ → Update ( `? A ) [ `? A ] n Γ Γ → Proc Δ → Proc Γ
 
 ↭proc : ∀{Γ Δ} → Γ ↭ Δ → Proc Γ → Proc Δ
 ↭proc π link         with ↭pair-inv π 
@@ -51,18 +51,21 @@ data Proc : Context → Set where
 ... | _ , _ , U` , π`  = wait U` (↭proc π` P)
 ↭proc π (fail U) with ↭-update π U
 ... | _ , _ , U` , _   = fail U`
-↭proc π (all P) = all (λ T → (
-    let 
-        _ , _ , U  , P₁ = P T  
-        _ , _ , U₁ , π₁ = ↭-update π U 
-    in _ , _ , U₁ , ↭proc π₁ P₁))
-↭proc π (ex B U P) with ↭-update π U
-... | _ , _ , U₁ , π₁   = ex B U₁ (↭proc π₁ P)
-↭proc π (server U Un P) with ↭-update π U
-... | _ , _ , U₁ , π₁   = server U₁ (↭un π₁ Un) (↭proc (prep π₁) P) 
+↭proc π (server U Un U₁ P) with ↭-update π U | ↭-update π U₁ | ↭-update-same-i π U U₁
+... | _ , _ , U₂ , π₁
+    | _ , _ , U₃ , π₂
+    | refl             = server U₂ (↭un π₁ Un) U₃ (↭proc π₂ P)
 ↭proc π (client U P)  with ↭-update π U
 ... | _ , _ , U₁ , π₁   = client U₁ (↭proc π₁ P)
 ↭proc π (weaken U P) with ↭-update π U
 ... | _ , _ , U₁ , π₁   = weaken U₁ (↭proc π₁ P)
-↭proc π (contract U P) with ↭-update π U
-... | _ , _ , U₁ , π₁   = contract U₁ (↭proc π₁ P)
+↭proc π (contract U U₁ P) with ↭-update-con π U
+... | _ , _ , U₂ , π₁ with ↭-update-id π U₁
+... | _ , U₃ = contract U₂ U₃ (↭proc π₁ P)
+-- ↭proc π (all P) = all (λ T → (
+--     let 
+--         _ , _ , U  , P₁ = P T  
+--         _ , _ , U₁ , π₁ = ↭-update π U 
+--     in _ , _ , U₁ , ↭proc π₁ P₁))
+-- ↭proc π (ex B U P) with ↭-update π U
+-- ... | _ , _ , U₁ , π₁   = ex B U₁ (↭proc π₁ P)

@@ -85,6 +85,14 @@ data _↭_ : Context → Context → Set where
 ↭concat (< σ) = prep (↭concat σ)
 ↭concat (> σ) = trans ↭-pull (prep (↭concat σ))
 
+↭-pull-update : ∀{Γ Δ A m} → Update A [] m Γ Δ → Γ ↭ (A ∷ Δ)
+↭-pull-update here = refl
+↭-pull-update (next U) = trans (prep (↭-pull-update U)) swap
+
+↭-pull-contract : ∀{Γ Δ A m} → Update (`? A) [] m Γ (`? A ∷ Δ) → Γ ↭ (`? A ∷ `? A ∷ Δ)
+↭-pull-contract here = refl
+↭-pull-contract (next U) = prep (↭-pull-update U)
+
 ↭-update : ∀{Γ Γ` A Δ Θ n} → Γ ↭ Γ` →  Update A Θ n Γ Δ → ∃[ m ] ∃[ Δ` ] (Update A Θ m Γ` Δ` × Δ ↭ Δ`)
 ↭-update refl U = _ , _ , U , refl
 ↭-update swap here = _ , _ , next here , ↭-pull
@@ -97,7 +105,32 @@ data _↭_ : Context → Context → Set where
 ... | _ , _ , U₁ , π₂ with ↭-update π₁ U₁
 ... | _ , _ , U₂ , π₃                 = _ , _ , U₂ , trans π₂ π₃
 
-↭-update-same-i : ∀ {Γ Γ' A B C Δ₁ Δ₂ n} → (π : Γ ↭ Γ') → (U : Update A [ B ] n Γ Δ₁) → (U' : Update A [ C ] n Γ Δ₂) → proj₁ (↭-update π U) ≡ proj₁ (↭-update π U')
+
+↭-update-con : ∀ {Γ Γ' A Δ n} → Γ ↭ Γ' → Update A [] n Δ Γ → ∃[ m ] ∃[ Δ' ] (Update A [] m Δ' Γ' × Δ ↭ Δ')
+↭-update-con refl U = _ , _ , U , refl
+↭-update-con swap here = _ , _ , next here , trans (prep swap) swap
+↭-update-con swap (next here) = _ , _ , here  , trans swap (prep swap)
+↭-update-con swap (next (next U)) = _ , _ , next (next U)  , swap
+↭-update-con (prep π) here = _ , _ , here , prep (prep π)
+↭-update-con (prep π) (next U) with ↭-update-con π U
+... | _ , _ , U₁ , π₁                 = _ , _ , next U₁ , prep π₁
+↭-update-con (trans π₁ π₂) U with ↭-update-con π₁ U
+... | _ , _ , U' , π₃ with ↭-update-con π₂ U'
+... | _ , _ , U'' , π₄ = _ , _ , U'' , trans π₃ π₄
+
+↭-update-id : ∀ {Γ Γ' A n} → Γ ↭ Γ' → Update A [ A ] n Γ Γ → ∃[ m ] (Update A [ A ] m Γ' Γ')
+↭-update-id refl     U               = _ , U
+↭-update-id swap     here            = _ , next here
+↭-update-id swap     (next here)     = _ , here
+↭-update-id swap     (next (next U)) = _ , next (next U)
+↭-update-id (prep π) here = _ , here
+↭-update-id (prep π) (next U) with ↭-update-id π U
+... | m , U' = _ , next U'
+↭-update-id (trans π₁ π₂) U with ↭-update-id π₁ U
+... | _ , U' with ↭-update-id π₂ U'
+... | m , U'' = m , U''
+
+↭-update-same-i : ∀ {Γ Γ' A Π Π₁ Δ₁ Δ₂ n} → (π : Γ ↭ Γ') → (U : Update A Π n Γ Δ₁) → (U' : Update A Π₁ n Γ Δ₂) → proj₁ (↭-update π U) ≡ proj₁ (↭-update π U')
 ↭-update-same-i refl U U₁ = refl
 ↭-update-same-i swap here here = refl
 ↭-update-same-i swap (next here) (next here) = refl

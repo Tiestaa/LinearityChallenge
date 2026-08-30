@@ -113,43 +113,20 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         in
         cut σ P (fork (> σ₁) (next U) Q R) ⊒ fork (+-comm σ₄) U₁ Q (cut σ₅ P R)
 
-    s-all : ∀{Δ Θ A C}
-        {F : ∀(B : Type) → ∃[ m ] ∃[ Δ₁ ] (Update ( `∀ A ) [ subst [ B /] A ] m Δ Δ₁ × Proc (C ∷ Δ₁))} →
-        {Q : Proc (dual C ∷ Θ )}    → 
-        (σ  : Γ ≃ Δ + Θ )           → 
-        cut σ (all λ x → let _ , _ , U , P = F x in _ , _ , next U , P) Q ⊒ 
-        all (λ x → let 
-            n , Δ₁ , U , P = F x 
-            _ , _ , σ₁ , U₁ = ≃-update-l σ U  
-        in _ , _ , U₁ , cut σ₁ P Q)
-
-    s-ex : 
-        ∀{Δ Δ₁ Θ A B C n}                             → 
-        (σ  : Γ ≃ Δ  + Θ )                            →
-        {P : Proc (C ∷ Δ₁)}                           →
-        {Q : Proc (dual C ∷ Θ)}                       →
-        (U : Update (`∃ A) [ subst [ B /] A ] n Δ Δ₁) → 
-        let
-            _ , _ , σ₁ , U₁ = ≃-update-l σ U  
-        in
-        cut σ (ex _ (next U) P) Q ⊒ ex _ U₁ (cut σ₁ P Q)
-
-
     s-server : 
-        ∀{Δ Δ₁ Θ A B n}                   → 
-        {P : Proc (A ∷ `? B ∷ Δ₁)}        →
-        {Q : Proc (dual (`? B) ∷ Θ)}      → 
+        ∀{Δ Δ₁ Δ₂ Θ A C n}                   → 
+        {P : Proc (`? C ∷ Δ₂)} →
+        {Q : Proc (`! (dual C) ∷ Θ)} → 
         (σ  : Γ ≃ Δ  + Θ )                →
         (U : Update ( `! A ) [] n Δ Δ₁)   → 
-        (UnΔ₁ : Un Δ₁)                    → 
-        (UnΘ : Un Θ)                      → 
+        (U₁ : Update ( `! A ) [ A ] n Δ Δ₂)   → 
+        (unΔ₁ : Un Δ₁)                    → 
+        (unΘ : Un Θ)                     →
         let
-            _ , _ , σ₁ , U₁ = ≃-update-l σ U  
-            Un = ≃-un σ₁ UnΔ₁ UnΘ
+            _ , _ , _ , σ₁ , σ₂ , U₂ , U₃ = ≃-update-l-gen σ U U₁
+            un = ≃-un σ₁ unΔ₁ unΘ
         in
-        cut σ (server (next U) (un-∷ UnΔ₁) P) Q ⊒ server U₁ Un (cut (< σ₁) (↭proc swap P) Q)
-
-
+        cut σ (server (next U) (un-∷ unΔ₁) (next U₁) P) Q ⊒ server U₂ un U₃ (cut σ₂ P Q)
 
     s-client  : ∀{Δ Δ₁ Θ A B n}              →  
         {P : Proc (B ∷ Δ₁)}                  → 
@@ -171,15 +148,29 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         in
         cut σ (weaken (next U) P) Q ⊒ weaken U₁ (cut σ₁ P Q)
 
-    s-contract : ∀{Δ Δ₁ Θ A B n}              →  
-        {P : Proc (B ∷ Δ₁)}                  → 
-        {Q : Proc (dual B ∷ Θ)}              →
-        (σ  : Γ ≃ Δ  + Θ )                   →
-        (U : Update ( `? A ) (`? A ∷ `? A ∷ []) n Δ Δ₁)   → 
+    s-contract-next : 
+        ∀{Δ Δ₁ Θ A B m n}              →  
+        {P : Proc (B ∷ Δ₁)}              →
+        {Q : Proc (dual B ∷ Θ)}          →
+        (σ  : Γ ≃ Δ  + Θ )               →
+        (U  : Update (`? A) [] m Δ₁ Δ)   → 
+        (U₁ : Update (`? A) [ `? A ] n Δ Δ)→ 
         let
-            _ , _ , σ₁ , U₁ = ≃-update-l σ U  
+            _ , U₂ = ≃-update-id-l σ U₁
+            _ , _ , σ₁ , U₃ = ≃-update-con-l σ U  
         in
-        cut σ (contract (next U) P) Q ⊒ contract U₁ (cut σ₁ P Q)
+        cut {A = B} σ (contract (next U) (next U₁) P) Q ⊒ contract U₃ U₂ (cut {A = B} σ₁ P Q)
+
+    s-contract-here : 
+        ∀{Δ Θ A B n}                   →  
+        {P : Proc (`? A ∷ B ∷ Δ)}        → 
+        {Q : Proc (dual B ∷ Θ)}          →
+        (σ  : Γ ≃ Δ  + Θ )               →
+        (U₁ : Update (`? A) [ `? A ] n Δ Δ)→ 
+        let
+            _ , U₂ = ≃-update-id-l σ U₁
+        in
+        cut {A = B} σ (contract here (next U₁) P) Q ⊒ contract here U₂ (cut {A = B} (< σ) (↭proc swap P) Q)
 
     s-refl : 
         ∀{P} → P ⊒ P 
@@ -195,3 +186,25 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         P  ⊒ Q                     → 
         P₁ ⊒ Q₁                    →
         cut  σ P P₁ ⊒ cut σ Q Q₁
+
+
+        -- s-all : ∀{Δ Θ A C}
+    --     {F : ∀(B : Type) → ∃[ m ] ∃[ Δ₁ ] (Update ( `∀ A ) [ subst [ B /] A ] m Δ Δ₁ × Proc (C ∷ Δ₁))} →
+    --     {Q : Proc (dual C ∷ Θ )}    → 
+    --     (σ  : Γ ≃ Δ + Θ )           → 
+    --     cut σ (all λ x → let _ , _ , U , P = F x in _ , _ , next U , P) Q ⊒ 
+    --     all (λ x → let 
+    --         n , Δ₁ , U , P = F x 
+    --         _ , _ , σ₁ , U₁ = ≃-update-l σ U  
+    --     in _ , _ , U₁ , cut σ₁ P Q)
+
+    -- s-ex : 
+    --     ∀{Δ Δ₁ Θ A B C n}                             → 
+    --     (σ  : Γ ≃ Δ  + Θ )                            →
+    --     {P : Proc (C ∷ Δ₁)}                           →
+    --     {Q : Proc (dual C ∷ Θ)}                       →
+    --     (U : Update (`∃ A) [ subst [ B /] A ] n Δ Δ₁) → 
+    --     let
+    --         _ , _ , σ₁ , U₁ = ≃-update-l σ U  
+    --     in
+    --     cut σ (ex _ (next U) P) Q ⊒ ex _ U₁ (cut σ₁ P Q)
