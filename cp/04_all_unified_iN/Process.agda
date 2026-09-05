@@ -3,6 +3,7 @@ open import Data.List.Base using ([]; _∷_; _++_; [_])
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import Data.Product using (_×_; _,_; ∃; ∃-syntax; proj₁)
 
 open import Type
 open import Context
@@ -19,12 +20,13 @@ data Proc : Context → Set where
     close    :  Proc [ 𝟙 ]
     wait     : ∀{Γ Δ n} → Update (⊥) [] n Γ Δ → Proc Δ → Proc Γ
     fail     : ∀{Γ Δ n} → Update (⊤) [] n Γ Δ → Proc Γ
-    -- all      : ∀{Γ A} → (∀(B : Type) → ∃[ m ] ∃[ Δ ] (Update ( `∀ A ) [ subst [ B /] A ] m Γ Δ × Proc Δ)) → Proc Γ
-    -- ex       : ∀{Γ Δ A n} → (B : Type) → Update ( `∃ A ) [ subst [ B /] A ] n Γ Δ → Proc Δ → Proc Γ
+    all      : ∀{Γ Δ A n} → Update (`∀ A) [] n Γ Δ → (∀(B : Type) {Θ} → Update ( `∀ A ) [ subst [ B /] A ] n Γ Θ → Proc Θ) → Proc Γ
+    ex       : ∀{Γ Δ A n} → (B : Type) → Update ( `∃ A ) [ subst [ B /] A ] n Γ Δ → Proc Δ → Proc Γ
     server   : ∀{Γ Δ Θ A n} → Update ( `! A ) [] n Γ Δ → Un Δ → Update ( `! A ) [ A ] n Γ Θ → Proc Θ → Proc Γ
     client   : ∀{Γ Δ A n} → Update ( `? A ) [ A ] n Γ Δ → Proc Δ → Proc Γ
     weaken   : ∀{Γ Δ A n} → Update ( `? A ) [] n Γ Δ → Proc Δ → Proc Γ
     contract : ∀{Γ Δ A m n} → Update ( `? A ) [] m Δ Γ → Update ( `? A ) [ `? A ] n Γ Γ → Proc Δ → Proc Γ
+
 
 ↭proc : ∀{Γ Δ} → Γ ↭ Δ → Proc Γ → Proc Δ
 ↭proc π link         with ↭pair-inv π 
@@ -62,10 +64,15 @@ data Proc : Context → Set where
 ↭proc π (contract U U₁ P) with ↭-update-con π U
 ... | _ , _ , U₂ , π₁ with ↭-update-id π U₁
 ... | _ , U₃ = contract U₂ U₃ (↭proc π₁ P)
--- ↭proc π (all P) = all (λ T → (
---     let 
---         _ , _ , U  , P₁ = P T  
---         _ , _ , U₁ , π₁ = ↭-update π U 
---     in _ , _ , U₁ , ↭proc π₁ P₁))
--- ↭proc π (ex B U P) with ↭-update π U
--- ... | _ , _ , U₁ , π₁   = ex B U₁ (↭proc π₁ P)
+↭proc π (all {n = n} U P) with ↭-update π U | ↭-update-inv-id π U
+... | m , _ , U₁ , π' | eq_inv = all U₁ (λ B {Θ₁} U₂ → all-lemma B U₂ eq_inv)
+  where
+    all-lemma : (B : Type) {Θ₁ : Context} 
+              → (U₂ : Update _ _ m _ Θ₁) 
+              → (eq : proj₁ (↭-update (↭sym π) U₁) ≡ n) 
+              → Proc Θ₁
+    all-lemma B U₂ eq with ↭-update (↭sym π) U₁ | ↭-update (↭sym π) U₂ | ↭-update-same-i (↭sym π) U₁ U₂ | eq
+    ... | _ , _ , _ , _ | _ , _ , U₃ , π₁ | refl | refl = ↭proc (↭sym π₁) (P B U₃)
+↭proc π (ex B U P) with ↭-update π U
+... | _ , _ , U₁ , π₁   = ex B U₁ (↭proc π₁ P)
+

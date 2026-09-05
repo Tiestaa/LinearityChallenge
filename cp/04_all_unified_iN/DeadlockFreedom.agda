@@ -21,6 +21,8 @@ data Input : ∀{Γ} → Proc Γ → Set where
     wait : ∀{Γ P}   → Input (wait (here {Γ = Γ}) P)
     case : ∀{Γ A B} (P : Proc (A ∷ Γ)) (Q : Proc (B ∷ Γ)) → Input (case (here {Γ = Γ}) (here {Γ = Γ}) P Q)
     join : ∀{Γ A B}  (P : Proc (A ∷ B ∷ Γ)) → Input (join (here {Γ = Γ}) P)
+    all : ∀{Γ A P} → Input (all {A = A} (here {Γ = Γ}) P)
+    -- all : ∀{Γ A} (P : (x : Type) → Proc (subst [ x /] A ∷ Γ)) → Input (all {A = A} (λ x → _ , _ , here {Γ = Γ} , P x))
 
 data Output : ∀{Γ} → Proc Γ → Set where
     close    : Output close
@@ -30,6 +32,8 @@ data Output : ∀{Γ} → Proc Γ → Set where
     client : ∀{Γ A} (P : Proc (A ∷ Γ)) → Output (client here P)
     weaken : ∀{Γ A} (P : Proc Γ) → Output (weaken {A = A} (here {Γ = Γ}) P)
     contract : ∀{Γ Δ A m} {U : Update (`? A) [] m Δ (`? A ∷ Γ)} → (P : Proc Δ) → Output (contract U here P)
+    -- ex : ∀{Γ A B} (Q : (B : Type) → Proc (subst [ B /] A ∷ Γ)) →  Output (ex {A = A} B (here {Γ = Γ}) (Q B))
+    ex : ∀{Γ A B} (P : Proc (subst [ B /] A ∷ Γ)) →  Output (ex {A = A} B (here {Γ = Γ}) P)
 
 data Delayed : ∀{Γ} → Proc Γ → Set where
     fail     : ∀{Γ Δ C n} {U : Update  ⊤  [] n Γ Δ} → Delayed (fail (next {C = C} U))
@@ -43,6 +47,9 @@ data Delayed : ∀{Γ} → Proc Γ → Set where
     client   : ∀{Γ Δ A C n P} {U : Update ( `? A ) [ A ] n Γ Δ} → Delayed (client (next {C = C} U) P)
     weaken   : ∀{Γ Δ A C n P} {U : Update ( `? A ) [] n Γ Δ} → Delayed (weaken (next {C = C} U) P)
     contract : ∀{Γ Δ m n A C P} → {U : Update ( `? A ) [] m Δ ( C ∷ Γ )} → {U₁ : Update ( `? A ) [ `? A  ] n Γ Γ} → Delayed (contract U (next U₁) P)
+    ex       : ∀{Γ Δ A B C n P} {U : Update ( `∃ A ) [ subst [ B /] A ] n Γ Δ} → Delayed (ex _ (next {C = C} U) P)
+    all      : ∀{Γ Δ A C n P} {U : Update (`∀ A) [] n Γ Δ} → Delayed (all {A = A} (next {C = C} U) P)
+
 
 data Server : ∀{Γ} → Proc Γ → Set where
     server : ∀{Δ A} → (P : Proc (A ∷ Δ)) → (un : Un Δ) → Server (server here un here P)
@@ -179,6 +186,16 @@ server→thread : ∀{Γ Δ Θ n A P} (U : Update (`! A) [] n Γ Δ) (un : Un Δ
 server→thread here     un        here      = server (server _ un)
 server→thread (next U) (un-∷ un) (next U₁) = dserver (server U un U₁)
 
+ex→thread : ∀{Γ Δ A B n} {P : Proc Δ}  (U : Update (`∃ A) [ subst [ B /] A ] n Γ Δ) → Thread (ex B U P)
+ex→thread here     = output (ex _)
+ex→thread (next _) = delayed ex
+
+all→thread : ∀{Γ Δ A n} → {P : (B : Type) {Θ : Context} → Update (`∀ A) [ subst [ B /] A ] n Γ Θ → Proc Θ} →
+        (U : Update (`∀ A) [] n Γ Δ) → Thread (all U P)
+all→thread here     = input all
+all→thread (next _) = delayed all
+
+
 canonical-cut-alive : ∀{Γ} {C : Proc Γ} → CanonicalCut C → Alive C
 canonical-cut-alive (cc-link σ link) = inj₂ ( _ , r-link σ)
 canonical-cut-alive (cc-redex σ close (inj₁ wait)) with +-empty-l σ
@@ -189,6 +206,7 @@ canonical-cut-alive (cc-redex σ (fork σ₁) (inj₁ (join P))) = inj₂ ( _ , 
 canonical-cut-alive (cc-redex σ (client P) (inj₂ (server P₁ un))) = inj₂ (_ , r-client σ P P₁ un)
 canonical-cut-alive (cc-redex σ (weaken P) (inj₂ (server P₁ un))) = inj₂ (_ , (r-weaken σ P P₁ un))
 canonical-cut-alive (cc-redex σ (contract P) (inj₂ (server P₁ un))) = inj₂ (_ , r-contract σ P P₁ _ un)
+canonical-cut-alive (cc-redex σ (ex P ) (inj₁ (all { P = P₁ } ))) = inj₂ (_ , r-exists σ P P₁)
 canonical-cut-alive (cc-delayed σ (fail {U = U})) = 
     let _ , _ , _ , U₁ = ≃-update-l σ U in 
     inj₁ ( _ , (s-fail σ U , (fail→thread U₁)))
@@ -233,6 +251,16 @@ canonical-cut-alive (cc-delayed σ (contract {U = next U} {U₁ = U₁})) =
         _ , U₃ = ≃-update-id-l σ U₁
     in
     inj₁ (_ , s-contract-next σ U U₁ , contract→thread _ U₃)
+canonical-cut-alive (cc-delayed σ (ex {U = U})) =
+    let 
+        _ , _ , _ , U₁ = ≃-update-l σ U
+    in 
+    inj₁ (_ , s-ex σ U , ex→thread U₁)
+canonical-cut-alive (cc-delayed σ (all {P = P} {U = U}))=
+    let 
+        _ , _ , _ , U₁ = ≃-update-l σ U
+    in  
+    inj₁ ( _ , s-all σ U P , all→thread U₁)
 canonical-cut-alive (cc-servers σ (server U un U₁) (server P un₁)) =
     let 
         _ , _ , _ , σ₁ , σ₂ , U₂ , U₃ = ≃-update-l-gen σ U U₁ 
@@ -255,10 +283,12 @@ deadlock-freedom (case U U` _ _)    = inj₁ (_ , s-refl , case→thread U U`)
 deadlock-freedom close              = inj₁ (_ , s-refl , output close)
 deadlock-freedom (wait U _)         = inj₁ (_ , s-refl , wait→thread U)
 deadlock-freedom (fail U)           = inj₁ (_ , s-refl , fail→thread U)
-deadlock-freedom (server U un U₁ P) = inj₁ (_ , s-refl , server→thread U un U₁)
-deadlock-freedom (client U P)       = inj₁ (_ , s-refl , client→thread U)
-deadlock-freedom (weaken U P)       = inj₁ (_ , s-refl , weaken→thread U)
-deadlock-freedom (contract U U₁ P)  = inj₁ (_ , s-refl , contract→thread U U₁)
+deadlock-freedom (all U _)          = inj₁ (_ , s-refl , all→thread U)
+deadlock-freedom (ex B U _)         = inj₁ (_ , s-refl , ex→thread U)
+deadlock-freedom (server U un U₁ _) = inj₁ (_ , s-refl , server→thread U un U₁)
+deadlock-freedom (client U _)       = inj₁ (_ , s-refl , client→thread U)
+deadlock-freedom (weaken U _)       = inj₁ (_ , s-refl , weaken→thread U)
+deadlock-freedom (contract U U₁ _)  = inj₁ (_ , s-refl , contract→thread U U₁)
 deadlock-freedom (cut σ P Q)     with deadlock-freedom P
 ... | inj₂ (_ , Red) = inj₂ (_ , (r-cut _ P Q Red))
 ... | inj₁ (_ , κ  , τ ) with deadlock-freedom Q

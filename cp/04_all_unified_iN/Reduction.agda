@@ -101,6 +101,13 @@ data _↝_ {Γ} : Proc Γ → Proc Γ → Set where
         cut {A = (`? A)} σ (contract U here P) (server here un here Q) ↝ 
         contraction un (+-comm σ) (cut (++-≃-l _ σ) (cut (< ++-≃) (↭proc (↭-pull-contract U) P) (server here un here Q)) (server here un here Q))
 
+    r-exists : 
+        ∀{Δ Θ A B} → 
+        (σ : Γ ≃ Δ + Θ) →
+        (P : Proc (subst [ B /] A ∷ Δ)) →
+        (Q : (x : Type) {Θ₁ : Context} → Update (`∀ (dual A)) [ dual (subst [ x /] A) ] 0 (dual (`∃ A) ∷ Θ) Θ₁ → Proc Θ₁) →
+        cut {A = (`∃ A)} σ (ex B here P) (all here Q) ↝ cut σ P (Q B here)
+        
     r-cut : 
         ∀{Δ Θ A Q}              →
         (σ : Γ ≃ Δ + Θ)         →
@@ -110,10 +117,3 @@ data _↝_ {Γ} : Proc Γ → Proc Γ → Set where
         cut σ P R ↝ cut σ Q R
     
     r-cong : ∀{P R Q} → P ⊒ R → R ↝ Q → P ↝ Q
-
-        -- r-exists : ∀{Δ Θ A B} → 
-    --     (σ : Γ ≃ Δ + Θ) →
-    --     (P : Proc (subst [ B /] A ∷ Δ)) →
-    --     (Q : (x : Type) → Proc (subst [ x /] (dual A) ∷ Θ)) →
-    --     cut {A = (`∃ A)} σ (ex B here P) (all λ x → _ , _ , here , Q x) ↝ 
-    --     cut σ P (Q _)

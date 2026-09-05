@@ -4,6 +4,7 @@ open import Data.Sum using (inj₁; inj₂)
 open import Data.Product using (_,_ ; proj₂)
 open import Data.List.Base using ([]; _∷_; [_])
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
+open import Data.Nat using (suc)
 
 open import Type
 open import Context
@@ -166,12 +167,38 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         {P : Proc (`? A ∷ B ∷ Δ)}        → 
         {Q : Proc (dual B ∷ Θ)}          →
         (σ  : Γ ≃ Δ  + Θ )               →
-        (U₁ : Update (`? A) [ `? A ] n Δ Δ)→ 
+        (U₁ : Update (`? A) [ `? A ] n Δ Δ) → 
         let
             _ , U₂ = ≃-update-id-l σ U₁
         in
         cut {A = B} σ (contract here (next U₁) P) Q ⊒ contract here U₂ (cut {A = B} (< σ) (↭proc swap P) Q)
 
+    s-all :
+        ∀{Δ Δ₁ Θ A C n}                →
+        {Q : Proc (dual C ∷ Θ)}       →
+        (σ  : Γ ≃ Δ + Θ )              → 
+        (U : Update (`∀ A) [] n Δ Δ₁ ) →
+        (P : (B : Type) → {Δ₂ : Context}  → Update ( `∀ A ) [ subst [ B /] A ] (suc n) ( C ∷ Δ ) Δ₂ → Proc Δ₂) →
+        let 
+          _ , _ , σ₁ , U₁ = ≃-update-l σ U  
+        in
+        cut σ (all (next U) P) Q ⊒ all U₁ λ B → λ U₂ → 
+        let
+            _ , σ₂ , U₃ = ≃-update-all-l σ U U₂
+            P₁ = P B (next U₃)
+        in
+        cut σ₂ P₁ Q
+
+    s-ex : 
+        ∀{Δ Δ₁ Θ A B C n}                             → 
+        (σ  : Γ ≃ Δ  + Θ )                            →
+        {P : Proc (C ∷ Δ₁)}                           →
+        {Q : Proc (dual C ∷ Θ)}                       →
+        (U : Update (`∃ A) [ subst [ B /] A ] n Δ Δ₁) → 
+        let
+            _ , _ , σ₁ , U₁ = ≃-update-l σ U  
+        in
+        cut σ (ex _ (next U) P) Q ⊒ ex _ U₁ (cut σ₁ P Q)
     s-refl : 
         ∀{P} → P ⊒ P 
     s-tran : 
@@ -187,24 +214,3 @@ data _⊒_ {Γ} : Proc Γ → Proc Γ → Set where
         P₁ ⊒ Q₁                    →
         cut  σ P P₁ ⊒ cut σ Q Q₁
 
-
-        -- s-all : ∀{Δ Θ A C}
-    --     {F : ∀(B : Type) → ∃[ m ] ∃[ Δ₁ ] (Update ( `∀ A ) [ subst [ B /] A ] m Δ Δ₁ × Proc (C ∷ Δ₁))} →
-    --     {Q : Proc (dual C ∷ Θ )}    → 
-    --     (σ  : Γ ≃ Δ + Θ )           → 
-    --     cut σ (all λ x → let _ , _ , U , P = F x in _ , _ , next U , P) Q ⊒ 
-    --     all (λ x → let 
-    --         n , Δ₁ , U , P = F x 
-    --         _ , _ , σ₁ , U₁ = ≃-update-l σ U  
-    --     in _ , _ , U₁ , cut σ₁ P Q)
-
-    -- s-ex : 
-    --     ∀{Δ Δ₁ Θ A B C n}                             → 
-    --     (σ  : Γ ≃ Δ  + Θ )                            →
-    --     {P : Proc (C ∷ Δ₁)}                           →
-    --     {Q : Proc (dual C ∷ Θ)}                       →
-    --     (U : Update (`∃ A) [ subst [ B /] A ] n Δ Δ₁) → 
-    --     let
-    --         _ , _ , σ₁ , U₁ = ≃-update-l σ U  
-    --     in
-    --     cut σ (ex _ (next U) P) Q ⊒ ex _ U₁ (cut σ₁ P Q)

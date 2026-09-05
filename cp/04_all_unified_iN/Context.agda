@@ -1,7 +1,6 @@
 {-# OPTIONS --rewriting #-}
-{-# OPTIONS --allow-unsolved-metas #-}
 open import Data.List.Base using (List; _∷_; []; [_]; _++_)
-open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
+open import Data.Product using (_×_; _,_; ∃; ∃-syntax; proj₁)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 open import Relation.Unary 
 open import Data.Nat
@@ -88,6 +87,17 @@ data _≃_+_ : Context → Context → Context → Set where
 ≃-update-r : ∀{Γ Δ Θ Θ` A Π n} → Γ ≃ Δ + Θ → Update A Π n Θ Θ` → ∃[ m ] ∃[ Γ` ] (Γ` ≃ Δ + Θ` × Update A Π m Γ Γ`)
 ≃-update-r σ U with ≃-update-l (+-comm σ) U
 ... | m , _ , σ₁ , U₁  = m , _ , +-comm σ₁ , U₁
+
+≃-update-all-l : ∀{Γ Γ₁ Δ Δ₁ Θ A B n} → 
+    (σ  : Γ ≃ Δ + Θ) →
+    (U  : Update (`∀ A) [] n Δ Δ₁) → 
+    (U₁ : Update (`∀ A) [ subst [ B /] A ] (proj₁ (≃-update-l σ U)) Γ Γ₁) → 
+    ∃[ Δ₂ ] (Γ₁ ≃ Δ₂ + Θ × Update ( `∀ A ) [ subst [ B /] A ] n Δ Δ₂)
+≃-update-all-l (< σ) here here = _ , (< σ) , here
+≃-update-all-l (< σ) (next U) (next U₁) with ≃-update-all-l σ U U₁
+... | _ , σ₁ , U₂ = _ , (< σ₁) , next U₂
+≃-update-all-l (> σ) U (next U₁) with ≃-update-all-l σ U U₁
+... | _ , σ₁ , U₂ = _ , (> σ₁) , U₂
 
 data Un : Context → Set where
     un-[] : Un []
