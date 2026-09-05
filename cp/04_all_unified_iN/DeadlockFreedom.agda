@@ -22,7 +22,7 @@ data Input : ∀{Γ} → Proc Γ → Set where
     case : ∀{Γ A B} (P : Proc (A ∷ Γ)) (Q : Proc (B ∷ Γ)) → Input (case (here {Γ = Γ}) (here {Γ = Γ}) P Q)
     join : ∀{Γ A B}  (P : Proc (A ∷ B ∷ Γ)) → Input (join (here {Γ = Γ}) P)
     all : ∀{Γ A P} → Input (all {A = A} (here {Γ = Γ}) P)
-    -- all : ∀{Γ A} (P : (x : Type) → Proc (subst [ x /] A ∷ Γ)) → Input (all {A = A} (λ x → _ , _ , here {Γ = Γ} , P x))
+
 
 data Output : ∀{Γ} → Proc Γ → Set where
     close    : Output close
@@ -32,7 +32,6 @@ data Output : ∀{Γ} → Proc Γ → Set where
     client : ∀{Γ A} (P : Proc (A ∷ Γ)) → Output (client here P)
     weaken : ∀{Γ A} (P : Proc Γ) → Output (weaken {A = A} (here {Γ = Γ}) P)
     contract : ∀{Γ Δ A m} {U : Update (`? A) [] m Δ (`? A ∷ Γ)} → (P : Proc Δ) → Output (contract U here P)
-    -- ex : ∀{Γ A B} (Q : (B : Type) → Proc (subst [ B /] A ∷ Γ)) →  Output (ex {A = A} B (here {Γ = Γ}) (Q B))
     ex : ∀{Γ A B} (P : Proc (subst [ B /] A ∷ Γ)) →  Output (ex {A = A} B (here {Γ = Γ}) P)
 
 data Delayed : ∀{Γ} → Proc Γ → Set where
@@ -74,11 +73,6 @@ Reducible P = ∃[ Q ] P ↝ Q
 
 Alive : ∀{Γ} → Proc Γ → Set
 Alive P = Observable P ⊎ Reducible P
-
-
-
-
-
 
 data CanonicalCut {Γ} : Proc Γ → Set where
   cc-link    : ∀{Γ₁ Γ₂ A P Q} (σ : Γ ≃ Γ₁ + Γ₂) →
