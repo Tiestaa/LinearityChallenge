@@ -1,6 +1,5 @@
 {-# OPTIONS --rewriting #-}
 open import Data.List.Base using ([]; _∷_; [_])
-open import Relation.Unary
 
 open import Type
 open import Context

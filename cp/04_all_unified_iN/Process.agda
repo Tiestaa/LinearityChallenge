@@ -17,15 +17,15 @@ data Proc : Context → Set where
     select-l : ∀{ Γ Δ A B n} → Update (A ⊕ B) [ A ] n Γ Δ → Proc Δ → Proc Γ
     select-r : ∀{ Γ Δ A B n} → Update (A ⊕ B) [ B ] n Γ Δ → Proc Δ → Proc Γ
     case     : ∀{Γ A B Δ Δ` n} → Update (A & B) [ A ] n Γ Δ → Update (A & B) [ B ] n Γ Δ` → Proc Δ → Proc Δ` → Proc Γ
-    close    :  Proc [ 𝟙 ]
-    wait     : ∀{Γ Δ n} → Update (⊥) [] n Γ Δ → Proc Δ → Proc Γ
-    fail     : ∀{Γ Δ n} → Update (⊤) [] n Γ Δ → Proc Γ
-    all      : ∀{Γ Δ A n} → Update (`∀ A) [] n Γ Δ → (∀(B : Type) {Θ} → Update ( `∀ A ) [ subst [ B /] A ] n Γ Θ → Proc Θ) → Proc Γ
-    ex       : ∀{Γ Δ A n} → (B : Type) → Update ( `∃ A ) [ subst [ B /] A ] n Γ Δ → Proc Δ → Proc Γ
-    server   : ∀{Γ Δ Θ A n} → Update ( `! A ) [] n Γ Δ → Un Δ → Update ( `! A ) [ A ] n Γ Θ → Proc Θ → Proc Γ
-    client   : ∀{Γ Δ A n} → Update ( `? A ) [ A ] n Γ Δ → Proc Δ → Proc Γ
-    weaken   : ∀{Γ Δ A n} → Update ( `? A ) [] n Γ Δ → Proc Δ → Proc Γ
-    contract : ∀{Γ Δ A m n} → Update ( `? A ) [] m Δ Γ → Update ( `? A ) [ `? A ] n Γ Γ → Proc Δ → Proc Γ
+    close    : Proc [ 𝟙 ]
+    wait     : ∀{Γ Δ n} → Update ⊥ [] n Γ Δ → Proc Δ → Proc Γ
+    fail     : ∀{Γ Δ n} → Update ⊤ [] n Γ Δ → Proc Γ
+    all      : ∀{Γ Δ A n} → Update (`∀ A) [] n Γ Δ → (∀(B : Type) {Θ} → Update (`∀ A) [ subst [ B /] A ] n Γ Θ → Proc Θ) → Proc Γ
+    ex       : ∀{Γ Δ A n} → (B : Type) → Update (`∃ A) [ subst [ B /] A ] n Γ Δ → Proc Δ → Proc Γ
+    server   : ∀{Γ Δ Θ A n} → Update (`! A) [] n Γ Δ → Un Δ → Update (`! A) [ A ] n Γ Θ → Proc Θ → Proc Γ
+    client   : ∀{Γ Δ A n} → Update (`? A) [ A ] n Γ Δ → Proc Δ → Proc Γ
+    weaken   : ∀{Γ Δ A n} → Update (`? A) [] n Γ Δ → Proc Δ → Proc Γ
+    contract : ∀{Γ Δ A m n} → Update (`? A) [] m Δ Γ → Update (`? A) [ `? A ] n Γ Γ → Proc Δ → Proc Γ
 
 
 ↭proc : ∀{Γ Δ} → Γ ↭ Δ → Proc Γ → Proc Δ

@@ -24,8 +24,8 @@ dual (A ⅋ B)  = dual A ⊗ dual B
 dual (A ⊗ B)  = dual A ⅋ dual B
 dual (`∀ A)   = `∃ (dual A)
 dual (`∃ A)   = `∀ (dual A)
-dual (`! A)    = `? (dual A)
-dual (`? A)    = `! (dual A)
+dual (`! A)   = `? (dual A)
+dual (`? A)   = `! (dual A)
 
 dual-inv : ∀{n} {A : PreType n} → dual (dual A) ≡ A
 dual-inv {_} {⊤} = refl

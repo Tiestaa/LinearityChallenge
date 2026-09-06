@@ -2,8 +2,7 @@
 open import Data.List.Base using (List; _∷_; []; [_]; _++_)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax; proj₁)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
-open import Relation.Unary 
-open import Data.Nat
+open import Data.Nat using (ℕ; suc)
 
 open import Type
 
@@ -17,7 +16,7 @@ data Update (A : Type) (Δ : Context) : ℕ → Context → Context → Set wher
     next : ∀{Γ Θ C n} → Update A Δ n Γ Θ → Update A Δ (suc n) (C ∷ Γ) (C ∷ Θ)
 
 data _≃_+_ : Context → Context → Context → Set where
-    • : [] ≃ [] + []  
+    •  : [] ≃ [] + []  
     <_ : ∀{A Γ Δ Θ} → Γ ≃ Δ + Θ → A ∷ Γ ≃ A ∷ Δ + Θ
     >_ : ∀{A Γ Δ Θ} → Γ ≃ Δ + Θ → A ∷ Γ ≃ Δ + A ∷ Θ
 
@@ -40,7 +39,7 @@ data _≃_+_ : Context → Context → Context → Set where
 ... | _ , p` , q` = _ , +-comm p` , +-comm q`
 
 +-empty-l : ∀{Γ Δ} → Γ ≃ [] + Δ → Γ ≡ Δ
-+-empty-l • = refl
++-empty-l •     = refl
 +-empty-l (> p) = cong (_ ∷_) (+-empty-l p)
 
 ++-≃-l : ∀ (Π : Context) {Γ Δ Θ} → Γ ≃ Δ + Θ → (Π ++ Γ) ≃ (Π ++ Δ) + Θ
@@ -52,14 +51,13 @@ data _≃_+_ : Context → Context → Context → Set where
 ++-≃ {[]}    {x ∷ Δ} = < ++-≃
 ++-≃ {x ∷ Γ} {Δ}     = > ++-≃
 
-
 ≃-update-l-gen : ∀{Γ Δ Δ₁ Δ₂ Θ A Π₁ Π₂ n} → Γ ≃ Δ + Θ → Update A Π₁ n Δ Δ₁  → Update A Π₂ n Δ Δ₂  
     → ∃[ m ] ∃[ Γ₁ ] ∃[ Γ₂ ] (
         Γ₁ ≃ Δ₁ + Θ ×
         Γ₂ ≃ Δ₂ + Θ ×
         Update A Π₁ m Γ Γ₁ ×
         Update A Π₂ m Γ Γ₂
-    )
+   )
 ≃-update-l-gen (< σ) here here = _ , _ , _ , ++-≃-l _ σ , ++-≃-l _ σ , here , here
 ≃-update-l-gen (< σ) (next U₁) (next U₂) with ≃-update-l-gen σ U₁ U₂ 
 ... | _ , _ , _ , σ₁ , σ₂ , U₃ , U₄ = _ , _ , _ , (< σ₁) , (< σ₂) , next U₃ , next U₄
@@ -92,7 +90,7 @@ data _≃_+_ : Context → Context → Context → Set where
     (σ  : Γ ≃ Δ + Θ) →
     (U  : Update (`∀ A) [] n Δ Δ₁) → 
     (U₁ : Update (`∀ A) [ subst [ B /] A ] (proj₁ (≃-update-l σ U)) Γ Γ₁) → 
-    ∃[ Δ₂ ] (Γ₁ ≃ Δ₂ + Θ × Update ( `∀ A ) [ subst [ B /] A ] n Δ Δ₂)
+    ∃[ Δ₂ ] (Γ₁ ≃ Δ₂ + Θ × Update (`∀ A) [ subst [ B /] A ] n Δ Δ₂)
 ≃-update-all-l (< σ) here here = _ , (< σ) , here
 ≃-update-all-l (< σ) (next U) (next U₁) with ≃-update-all-l σ U U₁
 ... | _ , σ₁ , U₂ = _ , (< σ₁) , next U₂
@@ -101,7 +99,7 @@ data _≃_+_ : Context → Context → Context → Set where
 
 data Un : Context → Set where
     un-[] : Un []
-    un-∷  : ∀{Γ A} → Un Γ → Un ( `? A ∷ Γ)
+    un-∷  : ∀{Γ A} → Un Γ → Un (`? A ∷ Γ)
 
 ≃-un : ∀{Γ Δ Θ} → Γ ≃ Δ + Θ → Un Δ → Un Θ → Un Γ
 ≃-un •     UΔ        UΘ        = un-[]

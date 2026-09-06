@@ -1,11 +1,8 @@
 {-# OPTIONS --rewriting #-}
-open import Data.Sum using (inj₁; inj₂)
 open import Data.Product using (_,_)
 open import Data.List.Base using ([]; _∷_; [_]; _++_)
 open import Data.List.Properties using (++-assoc)
-import Relation.Unary hiding (_⊥_)
-open import Relation.Binary.PropositionalEquality using (_≡_; sym; refl)
-open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
+open import Relation.Binary.PropositionalEquality using (_≡_; sym)
 
 open import Type
 open import Context
@@ -68,7 +65,7 @@ data _↝_ {Γ} : Proc Γ → Proc Γ → Set where
         (Q : Proc (B ∷ Δ₂))              →
         (R : Proc (dual A ∷ dual B ∷ Θ)) →
         let
-            _ , σ₃ , σ₄ = +-assoc-l σ ( +-comm σ₁)
+            _ , σ₃ , σ₄ = +-assoc-l σ (+-comm σ₁)
         in
         cut {A = A ⊗ B} σ (fork (> σ₁) here P Q) (join here R) ↝ 
             cut σ₄ Q (cut (> σ₃) P R)
@@ -89,17 +86,17 @@ data _↝_ {Γ} : Proc Γ → Proc Γ → Set where
         (Q : Proc (dual A ∷ Θ))  → 
         (un : Un Θ)              → 
         cut {A = (`? A)} σ (weaken here P) (server here un here Q) ↝ 
-        weakening un (+-comm σ) P
+            weakening un (+-comm σ) P
 
     r-contract :
         ∀{ Δ Δ₁ Θ A m}                 →
         (σ  : Γ ≃ Δ  + Θ)        →          
         (P : Proc Δ₁)       → 
         (Q : Proc (dual A ∷ Θ))  → 
-        (U : Update ( `? A ) [] m Δ₁ (`? A ∷ Δ)) →
+        (U : Update (`? A) [] m Δ₁ (`? A ∷ Δ)) →
         (un : Un Θ)              →   
         cut {A = (`? A)} σ (contract U here P) (server here un here Q) ↝ 
-        contraction un (+-comm σ) (cut (++-≃-l _ σ) (cut (< ++-≃) (↭proc (↭-pull-contract U) P) (server here un here Q)) (server here un here Q))
+            contraction un (+-comm σ) (cut (++-≃-l _ σ) (cut (< ++-≃) (↭proc (↭-pull-contract U) P) (server here un here Q)) (server here un here Q))
 
     r-exists : 
         ∀{Δ Θ A B} → 
@@ -107,7 +104,7 @@ data _↝_ {Γ} : Proc Γ → Proc Γ → Set where
         (P : Proc (subst [ B /] A ∷ Δ)) →
         (Q : (x : Type) {Θ₁ : Context} → Update (`∀ (dual A)) [ dual (subst [ x /] A) ] 0 (dual (`∃ A) ∷ Θ) Θ₁ → Proc Θ₁) →
         cut {A = (`∃ A)} σ (ex B here P) (all here Q) ↝ cut σ P (Q B here)
-        
+
     r-cut : 
         ∀{Δ Θ A Q}              →
         (σ : Γ ≃ Δ + Θ)         →

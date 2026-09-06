@@ -1,16 +1,16 @@
 {-# OPTIONS --rewriting #-}
 open import Data.List.Base using (List; _∷_; []; [_]; _++_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
-open import Data.Product using (_×_; _,_; ∃; ∃-syntax; proj₁; proj₂)
+open import Data.Product using (_×_; _,_; ∃; ∃-syntax; proj₁)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Data.Nat
+open import Data.Nat using (suc)
 
 
 open import Type
 open import Context
 
 data _↭_ : Context → Context → Set where
-    refl  : ∀{Γ} → Γ ↭ Γ
+    refl  : ∀{Γ}     → Γ ↭ Γ
     swap  : ∀{A B Γ} → (A ∷ B ∷ Γ) ↭ (B ∷ A ∷ Γ)
     prep  : ∀{A Γ Δ} → Γ ↭ Δ → (A ∷ Γ) ↭ (A ∷ Δ)
     trans : ∀{Γ Δ Θ} → Γ ↭ Δ → Δ ↭ Θ → Γ ↭ Θ
@@ -43,7 +43,7 @@ data _↭_ : Context → Context → Set where
 ... | inj₁ refl        = inj₂ refl
 ... | inj₂ refl        = inj₁ refl
 
-↭split : ∀{Γ Γ₁ Γ₂ Δ} → Γ ↭ Δ → Γ ≃ Γ₁ + Γ₂ → ∃[ Δ₁ ] ∃[ Δ₂ ] ( Δ ≃ Δ₁ + Δ₂ × Γ₁ ↭ Δ₁ × Γ₂ ↭ Δ₂ )
+↭split : ∀{Γ Γ₁ Γ₂ Δ} → Γ ↭ Δ → Γ ≃ Γ₁ + Γ₂ → ∃[ Δ₁ ] ∃[ Δ₂ ] (Δ ≃ Δ₁ + Δ₂ × Γ₁ ↭ Δ₁ × Γ₂ ↭ Δ₂)
 ↭split refl     •            = _ , _ , • , refl , refl
 ↭split refl     (< s)        = _ , _ , < s , prep refl , refl
 ↭split refl     (> s)        = _ , _ , > s , refl , prep refl
@@ -146,19 +146,19 @@ data _↭_ : Context → Context → Set where
                 → (U : Update A Π n Γ Δ)
                 → let _ , _ , U₁ , _ = ↭-update π U 
                   in proj₁ (↭-update (↭sym π) U₁) ≡ n
-↭-update-inv-id refl U = refl
-↭-update-inv-id swap here = refl
-↭-update-inv-id swap (next here) = refl
-↭-update-inv-id swap (next (next U)) = refl
-↭-update-inv-id (prep π) here = refl
-↭-update-inv-id (prep π) (next U) = cong suc (↭-update-inv-id π U)
+↭-update-inv-id refl     U               = refl
+↭-update-inv-id swap     here            = refl
+↭-update-inv-id swap     (next here)     = refl
+↭-update-inv-id swap     (next (next U)) = refl
+↭-update-inv-id (prep π) here            = refl
+↭-update-inv-id (prep π) (next U)        = cong suc (↭-update-inv-id π U)
 ↭-update-inv-id (trans π₁ π₂) U with ↭-update π₁ U | ↭-update-inv-id π₁ U
 ... | _ , _ , U₁ , _ | eq₁ with ↭-update π₂ U₁ | ↭-update-inv-id π₂ U₁
 ... | _ , _ , U₂ , _ | refl with ↭-update (↭sym π₂) U₂
 ... | _ , _ , U₃ , _ rewrite ↭-update-same-i (↭sym π₁) U₃ U₁ = eq₁
 
 ↭shift : ∀{A Γ Δ} → (Γ ++ A ∷ Δ) ↭ (A ∷ Γ ++ Δ)
-↭shift {_} {[]} = refl
+↭shift {_} {[]}    = refl
 ↭shift {_} {_ ∷ _} = trans (prep ↭shift) swap
 
 ↭left : ∀{Γ Δ Θ} → Γ ↭ Δ → (Θ ++ Γ) ↭ (Θ ++ Δ)
